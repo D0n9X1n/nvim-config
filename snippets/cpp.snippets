@@ -1,0 +1,300 @@
+priority -46
+
+snippet pq
+priority_queue<${1}, vector<${2}>, pcmp> pq;
+endsnippet
+
+snippet pcmp
+struct pcmp {
+  bool operator()(const ${1} a, const ${2} b) {
+    return ${3}
+  }
+};
+endsnippet
+
+snippet cmp
+bool cmp(const ${1} a, const ${2} b) {
+  ${3}
+}
+endsnippet
+
+snippet forii
+for (uint64_t i = 0; i < ${1}; i++) {
+  ${2}
+}
+endsnippet
+
+snippet rfori
+for (int i = ${1}; i >= ${2}; i--) {
+  ${3}
+}
+endsnippet
+
+snippet rforj
+for (int j = ${1}; j >= ${2}; j--) {
+  ${3}
+}
+endsnippet
+
+snippet rfork
+for (int k = ${1}; k >= ${2}; k--) {
+  ${3}
+}
+endsnippet
+
+snippet fori
+for (int i = 0; i < ${1}; i++) {
+  ${2}
+}
+endsnippet
+
+snippet forj
+for (int j = 0; j < ${1}; j++) {
+  ${2}
+}
+endsnippet
+
+snippet fork
+for (int k = 0; k < ${1}; k++) {
+  ${2}
+}
+endsnippet
+
+snippet fort
+for (int _ = 0; _ < t; _++) {
+  ${1}
+}
+endsnippet
+
+snippet for
+for (i = 0; i < ${1}; i++) {
+  ${2}
+}
+endsnippet
+
+global !p
+
+def write_docstring_args(arglist, snip):
+	args = str(arglist).split(',')
+
+	if len(args) > 1:
+		c = 0
+		for arg in args:
+			if c == 0:
+				snip.rv += arg
+				c = 1
+			else:
+				snip += '*       : %s' % arg.strip()
+	else:
+		snip.rv = args[0]
+
+endglobal
+
+snippet in
+cin >> ${1} >> ${2};
+endsnippet
+
+snippet out
+cout << ${1} << endl;
+endsnippet
+
+snippet cout
+cout << ${1} << endl;
+endsnippet
+
+
+snippet acm
+#include <algorithm>
+#include <bitset>
+#include <climits>
+#include <cmath>
+#include <complex>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <list>
+#include <map>
+#include <numeric>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <string>
+#include <typeinfo>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
+using namespace std;
+
+int main() {
+  ios::sync_with_stdio(false);
+  ${1}
+  return 0;
+}
+endsnippet
+
+snippet readfile "read file (readF)"
+vector<char> v;
+if (FILE *fp = fopen(${1:"filename"}, "r")) {
+  char buf[1024];
+  while(size_t len = fread(buf, 1, sizeof(buf), fp))
+    v.insert(v.end(), buf, buf + len);
+  fclose(fp);
+}
+endsnippet
+
+snippet map "map (map)"
+map<${1:key}, ${2:value}> map$0;
+endsnippet
+
+snippet vector "vector (v)"
+vector<${1:char}> v$0;
+endsnippet
+
+snippet list "list (v)"
+list<${1:char}> v$0;
+endsnippet
+
+snippet set "set (v)"
+set<${1:char}> v$0;
+endsnippet
+
+snippet tp "template <typename ..> (template)"
+template <typename ${1:_InputIter}>
+endsnippet
+
+snippet cla "An entire .h generator" b
+#ifndef ${2:`!v substitute(vim_snippets#Filename('$1_H','ClassName'),'.*','\U&\E','')`}
+#define $2
+
+class ${1:`!v substitute(substitute(vim_snippets#Filename('$1','ClassName'),'^.','\u&',''), '_\(\w\)', '\u\1', 'g')`} {
+ private:
+  $3
+
+ public:
+  $1();
+  virtual ~$1();
+};
+
+#endif /* $2 */
+endsnippet
+
+
+snippet func "Basic c++ doxygen function template" b
+/**
+* @brief: ${4:brief}
+*
+* @param: `!p write_docstring_args(t[3],snip)`
+*
+* @return: `!p snip.rv = t[1]`
+*/
+${1:ReturnType} ${2:FunctionName}(${3:param}) {
+  ${0:FunctionBody}
+}
+endsnippet
+
+snippet kmp "kmp function"
+vector<int> __next(string& needle) {
+  int n = needle.length();
+  vector<int> lps(n, 0);
+  for (int i = 1, len = 0; i < n; ) {
+    if (needle[i] == needle[len])
+      lps[i++] = ++len;
+      else if (len) len = lps[len - 1];
+      else lps[i++] = 0;
+  }
+  return lps;
+}
+int kmp(string haystack, string needle) {
+  int m = haystack.length(), n = needle.length();
+  if (!n) return 0;
+  vector<int> lps = __next(needle);
+  for (int i = 0, j = 0; i < m; ) {
+    if (haystack[i] == needle[j]) {
+      i++;
+      j++;
+    }
+    if (j == n) return i - j;
+    if (i < m && haystack[i] != needle[j]) {
+      if (j) j = lps[j - 1];
+      else i++;
+    }
+  }
+  return -1;
+}
+endsnippet
+
+snippet lcs "LCS function"
+int LCS(vector<int> nums) {
+  vector<int> rev = nums;
+  reverse(rev.begin(), rev.end());
+  int size = nums.size();
+  vector<vector<int> > DP(size + 1, vector<int>(size + 1));
+  for (int i = 1; i <= size; ++i) {
+    for (int j = 1; j <= size; ++j) {
+      if (nums[i - 1] == rev[j - 1]) {
+        DP[i][j] = DP[i - 1][j - 1] + 1;
+      } else if (DP[i-1][j] >= DP[i][j-1]) {
+        DP[i][j] = DP[i - 1][j];
+      } else if (DP[i - 1][j] < DP[i][j - 1]) {
+        DP[i][j] = DP[i][j - 1];
+      }
+    }
+  }
+
+  return DP[size][size];
+}
+endsnippet
+
+snippet fib "fib function"
+void multiply(long long c[2][2],long long a[2][2],long long b[2][2]) {
+  long long tmp[4];
+  tmp[0] = (a[0][0]*b[0][0])%MOD + (a[0][1]*b[1][0])%MOD;
+  tmp[1] = (a[0][0]*b[0][1])%MOD + (a[0][1]*b[1][1])%MOD;
+  tmp[2] = (a[1][0]*b[0][0])%MOD + (a[1][1]*b[1][0])%MOD;
+  tmp[3] = (a[1][0]*b[0][1])%MOD + (a[1][1]*b[1][1])%MOD;
+  c[0][0] = tmp[0]%MOD;
+  c[0][1] = tmp[1]%MOD;
+  c[1][0] = tmp[2]%MOD;
+  c[1][1] = tmp[3]%MOD;
+}
+
+long long fib(int n) {
+  if(n == 0) return 0;
+  else if(n <= 2) return 1;
+
+  long long a[2][2] = {{1,1}, {1,0}};
+  long long result[2][2] = {{1,0}, {0,1}};
+  long long s;
+  n -= 2;
+  while (n > 0) {
+    if(n%2 == 1) {
+      multiply(result, result, a);
+    }
+    multiply(a, a, a);
+    n /= 2;
+  }
+  s = (result[0][0] + result[0][1])%MOD;
+
+  return s;
+}
+endsnippet
+
+
+snippet getDivisors "get divisors"
+int prime[100000];
+bool isPrime[1000005];
+
+void getPrime(int x){
+  for (int i = 1; i < x; i += 2) {
+    isPrime[i] = 1;
+    isPrime[i - 1] = 0;
+  }
+
+  prime[prime[0] = 1] = 2;

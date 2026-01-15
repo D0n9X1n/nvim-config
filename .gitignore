@@ -1,0 +1,33 @@
+# Private customizations - DO NOT commit
+lua/config/private.lua
+
+# Lazy.nvim plugin manager
+.lazy/
+lazy-lock.json
+
+# OS & Editor files
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Neovim runtime
+.netrwhist
+shada/
+view/
+backups/
+*pycache*
+*.pyc
+
+# Build artifacts
+build/
+dist/
+*.o
+*.so
+*.a
+*.dll
+*.exe
