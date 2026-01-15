@@ -35,10 +35,17 @@ NVIM_CONFIG_DIR="${HOME}/.config/nvim"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PRIVATE_LUA="${NVIM_CONFIG_DIR}/lua/config/private.lua"
 
-# Create config directory if it doesn't exist
-if [ ! -d "$NVIM_CONFIG_DIR" ]; then
+# Backup existing config if it exists
+if [ -d "$NVIM_CONFIG_DIR" ]; then
+    BACKUP_DIR="${HOME}/.config/nvim.backup.$(date +%Y%m%d_%H%M%S)"
+    echo -e "${YELLOW}Backing up existing Neovim config...${NC}"
+    cp -r "$NVIM_CONFIG_DIR" "$BACKUP_DIR"
+    echo -e "${GREEN}✓ Backup created: ${BACKUP_DIR}${NC}"
+    echo ""
+else
+    echo -e "${YELLOW}No existing config found, creating new...${NC}"
     mkdir -p "$NVIM_CONFIG_DIR"
-    echo -e "${YELLOW}Created Neovim config directory...${NC}"
+    echo ""
 fi
 
 # Create symlinks for all files/folders (except private.lua)

@@ -26,7 +26,12 @@ return {
   { 'ap/vim-css-color' },
   { 'mattn/emmet-vim' },
   { 'tpope/vim-markdown' },
-  { 'MikeCoder/markdown-preview.vim' },
+  {
+    'iamcco/markdown-preview.nvim',
+    build = 'cd app && npm install',
+    cmd = { 'MarkdownPreview', 'MarkdownPreviewStop', 'MarkdownPreviewToggle' },
+    ft = { 'markdown' },
+  },
 
   -- Tags / Navigation / Search
   { 'majutsushi/tagbar' },

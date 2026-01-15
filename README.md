@@ -293,12 +293,73 @@ Edit `init.lua`:
 vim.g.mapleader = ';'  -- Change from ',' to ';'
 ```
 
+### Private Customizations (private.lua)
+
+The `lua/config/private.lua` file is designed for your personal customizations and will **never be overwritten** on updates.
+
+#### Add Optional Plugins
+
+Uncomment and modify the return statement in `private.lua`:
+
+```lua
+return {
+  -- Wakatime - Time tracking for coding
+  { 'wakatime/vim-wakatime' },
+  
+  -- Other optional plugins
+  { 'tpope/vim-eunuch' },           -- Unix shell commands
+  { 'numToStr/Comment.nvim' },      -- Better commenting
+  { 'mbbill/undotree' },            -- Visual undo history
+  { 'folke/todo-comments.nvim' },   -- Highlight TODO comments
+}
+```
+
+#### Add Custom Keymaps
+
+In `private.lua`:
+```lua
+local map = vim.keymap.set
+local opts = { noremap = true, silent = true }
+
+map('n', '<leader>x', ':MyCommand<CR>', opts)
+```
+
+#### Add Custom Settings
+
+In `private.lua`:
+```lua
+local opt = vim.opt
+
+opt.tabstop = 4
+opt.shiftwidth = 4
+```
+
+#### Add Custom Autocommands
+
+In `private.lua`:
+```lua
+local augroup = vim.api.nvim_create_augroup
+local autocmd = vim.api.nvim_create_autocmd
+
+local my_group = augroup('MyCustomGroup', { clear = true })
+
+autocmd('BufWritePre', {
+  group = my_group,
+  pattern = '*.py',
+  command = 'Autoformat',
+})
+```
+
+**Note**: `private.lua` is your safe space for customizations - it's in `.gitignore` and will never be touched by updates!
+
 ### Disable Plugins
 
 In `lua/plugins/init.lua`, comment out or remove plugin entries:
 ```lua
 -- { 'wakatime/vim-wakatime' },
 ```
+
+For optional plugins, use `private.lua` instead (it won't be overwritten on updates).
 
 ### Add Custom Keymaps
 
