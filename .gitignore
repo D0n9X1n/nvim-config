@@ -22,6 +22,7 @@ view/
 backups/
 *pycache*
 *.pyc
+.nvimlog
 
 # Build artifacts
 build/

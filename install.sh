@@ -27,7 +27,12 @@ if ! command -v nvim &> /dev/null; then
 fi
 
 NVIM_VERSION=$(nvim --version | head -n1)
+NVIM_VERSION_NUM=$(echo "$NVIM_VERSION" | awk '{print $2}' | sed 's/^v//')
+IFS='.' read -r NVIM_MAJOR NVIM_MINOR NVIM_PATCH <<< "$NVIM_VERSION_NUM"
 echo -e "${GREEN}Found: ${NVIM_VERSION}${NC}"
+if [ "${NVIM_MAJOR:-0}" -eq 0 ] && [ "${NVIM_MINOR:-0}" -lt 11 ]; then
+    echo -e "${YELLOW}Warning: Neovim 0.11+ is recommended for this config.${NC}"
+fi
 echo ""
 
 # Set up directories
@@ -82,6 +87,8 @@ for item in "$SCRIPT_DIR"/*; do
 done
 
 echo -e "${GREEN}Symlinks created${NC}"
+echo ""
+echo -e "${GREEN}UltiSnips snippets live in: ${NVIM_CONFIG_DIR}/UltiSnips${NC}"
 echo ""
 
 # Create private.lua only if it doesn't exist
@@ -257,7 +264,7 @@ fi
 
 # Check for Python and pip
 echo ""
-echo -e "${YELLOW}Checking Python installation for YouCompleteMe...${NC}"
+echo -e "${YELLOW}Checking Python installation (optional)...${NC}"
 
 if ! command -v python3 &> /dev/null; then
     echo "Python 3 not found. Installing..."
@@ -266,9 +273,9 @@ else
     echo -e "${GREEN}✓ Python 3 already installed${NC}"
 fi
 
-# Optional: Install build tools for YouCompleteMe
+# Optional: Install build tools for clangd (C/C++ language server)
 if ! command -v clang++ &> /dev/null; then
-    echo -e "${YELLOW}Note: clang++ not found. Some YouCompleteMe features may not work.${NC}"
+    echo -e "${YELLOW}Note: clang++ not found. clangd-based C/C++ features may not work.${NC}"
     echo "Install Xcode command line tools with: xcode-select --install"
 else
     echo -e "${GREEN}✓ clang++ found${NC}"
@@ -287,7 +294,7 @@ echo "1. Open Neovim: nvim"
 echo "2. Plugins will be automatically installed by lazy.nvim on first run"
 echo ""
 echo "Important notes:"
-echo "- YouCompleteMe (YCM) requires: python3 -m pip install pynvim"
+echo "- Install language servers for the languages you use (e.g. clangd, pyright)"
 echo "- Some plugins may require additional setup"
 echo "- Review the README.md for configuration details"
 echo "- Edit private.lua to customize or add optional plugins"
@@ -296,4 +303,3 @@ echo "Leader key is: comma (,)"
 echo ""
 echo "To uninstall, remove symlinks:"
 echo "  rm -rf ${NVIM_CONFIG_DIR}"
-

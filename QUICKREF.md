@@ -4,6 +4,17 @@
 
 ---
 
+## 🧭 Agent Notes (Read First)
+
+- **Primary entry**: `init.lua`
+- **Plugin list**: `lua/plugins/init.lua`
+- **Plugin configs**: `lua/config/plugins/`
+- **Snippets**: `UltiSnips/` (UltiSnips format requires this directory name)
+- **LSP config**: `lua/config/plugins/lsp.lua` uses `vim.lsp.config` (not `lspconfig.setup`)
+- **Private overrides**: `lua/config/private.lua` (do not overwrite in updates)
+
+---
+
 ## 📁 Project Structure
 
 ### Complete File Hierarchy
@@ -15,7 +26,6 @@ nvim-config/
 ├── .gitignore
 ├── README.md                   # Complete documentation
 ├── QUICKREF.md                 # This file - everything you need!
-├── MIGRATION.md                # Migration guide from m-vim
 │
 ├── lua/
 │   ├── config/
@@ -25,7 +35,8 @@ nvim-config/
 │   │   ├── theme.lua           # Colorscheme & appearance
 │   │   ├── private.lua         # Custom configs (never overwritten)
 │   │   └── plugins/
-│   │       ├── ycm.lua         # YouCompleteMe config
+│   │       ├── lsp.lua         # LSP config
+│   │       ├── cmp.lua         # Completion config (nvim-cmp)
 │   │       ├── ultisnips.lua   # UltiSnips config
 │   │       ├── airline.lua     # Airline status bar config
 │   │       ├── wakatime.lua    # Wakatime config (example)
@@ -34,7 +45,7 @@ nvim-config/
 │   └── plugins/
 │       └── init.lua            # Plugin specifications (lazy.nvim)
 │
-└── snippets/                   # UltiSnips - All included!
+└── UltiSnips/                  # UltiSnips snippets (format expects this name)
     ├── all.snippets           # Global snippets (date, templates)
     ├── python.snippets        # Python (imports, functions, classes)
     ├── js.snippets            # JavaScript (console.log, React, CDN)
@@ -50,7 +61,7 @@ nvim-config/
 #### 40+ Plugins Across 10 Categories
 
 - **Language Support**: TypeScript, JavaScript, GraphQL, C/C++, Python, Solidity
-- **Completion**: YouCompleteMe, UltiSnips, vim-snippets
+- **Completion**: nvim-cmp, built-in LSP, UltiSnips, vim-snippets
 - **Navigation**: NERDTree, CtrlP, Tagbar, vim-easymotion
 - **Version Control**: vim-fugitive, vim-gitgutter
 - **UI Enhancements**: vim-airline, rainbow, indentLine
@@ -67,7 +78,7 @@ nvim-config/
 ✅ Lua configuration (clean, maintainable)  
 ✅ 40+ organized plugins  
 ✅ Full TypeScript/JavaScript support  
-✅ YouCompleteMe with snippets  
+✅ LSP completion with snippets  
 ✅ Git integration  
 ✅ File tree and fuzzy search  
 ✅ Code formatting and linting  
@@ -85,7 +96,7 @@ nvim-config/
 nvim
 
 # 3. Plugins auto-install on first run
-# 4. Optional: pip install pynvim (for YouCompleteMe)
+# 4. Optional: install language servers you use (e.g. clangd, pyright)
 ```
 
 ---
@@ -115,10 +126,10 @@ nvim
 - `k` / `j` - Move cursor (wrapped lines treated as normal)
 - `;` - Faster command entry (mapped to `:`)
 
-### Development & YCM
-- `,jd` - Go to definition (YouCompleteMe)
-- `,gd` - Go to declaration (YouCompleteMe)
-- `,ee` - Show diagnostics (YouCompleteMe)
+### Development & LSP
+- `,jd` - Go to definition (LSP)
+- `,gd` - Go to declaration (LSP)
+- `,ee` - Show diagnostics (LSP)
 - `,t` / `<F9>` - Toggle Tagbar
 - `,m` - Markdown preview
 - `,us` - Edit snippets with UltiSnips
@@ -212,7 +223,7 @@ nvim
 ```
 ~/.config/nvim/           # Main configuration
 ~/.local/share/nvim/lazy/ # Plugins (auto-installed on first run)
-~/.config/nvim/snippets/  # Custom snippets
+~/.config/nvim/UltiSnips/  # Custom snippets
 ```
 
 ---
@@ -223,11 +234,11 @@ nvim
 
 - **Neovim** >= 0.7.0
 - **Git** - For plugin management
-- **Python 3** - For YouCompleteMe and other plugins
+- **Python 3** - For Neovim's Python provider and some plugins (optional)
 
 ### Optional but Recommended
 
-- **Clang/LLVM** - Better C/C++ support (via Xcode CLT on macOS)
+- **Clang/LLVM** - clangd language server for C/C++ (optional)
 - **ripgrep** - Fast search alternative to ag
 - **the_silver_searcher** - Fast grep alternative
 - **universal-ctags** - Better tag generation
@@ -241,17 +252,12 @@ brew install universal-ctags
 brew install fzf
 ```
 
-### YouCompleteMe Setup
+### LSP Setup
 
 ```bash
-# First time setup
-python3 -m pip install pynvim
-
-# In Neovim
-:YcmRestartServer
-
-# For C/C++ support
-xcode-select --install
+Install language servers for the languages you use (examples: `clangd`,
+`pyright`, `gopls`, `typescript-language-server`). Neovim will auto-start them
+when available on your PATH.
 ```
 
 ---
@@ -380,12 +386,10 @@ In insert mode:
 :Lazy sync         " Resync all plugins
 ```
 
-### YouCompleteMe not working
-```bash
-python3 --version                  # Verify Python
-python3 -m pip install pynvim      # Install requirements
-cd ~/.local/share/nvim/lazy/YouCompleteMe
-./install.py --clang-completer     # Rebuild
+### LSP not working
+```vim
+:LspInfo                  " Show active language servers
+:checkhealth              " System health check
 ```
 
 ### Snippets not expanding
@@ -408,8 +412,8 @@ nvim --startuptime log.txt  " Profile startup time
 :checkhealth                " System health & diagnostics
 :Lazy                       " Plugin manager UI
 :Lazy sync                  " Sync all plugins
-:YcmCompleter GoToDefinition " Go to definition
-:YcmDiags                   " Show all diagnostics
+:LspInfo                   " Show active language servers
+:lua vim.diagnostic.open_float() " Show diagnostics
 :UltiSnipsEdit              " Edit snippet definitions
 :TagbarToggle               " Toggle code outline
 :NERDTreeToggle             " Toggle file tree
@@ -471,7 +475,7 @@ nvim --startuptime log.txt  " Profile startup time
 :Lazy                  " Plugin manager UI
 :help lua              " Lua documentation
 :help nvim             " Neovim manual
-:YcmDebugInfo          " YCM debugging
+:LspInfo               " LSP debugging
 :Lazy show <plugin>    " Show plugin info
 ```
 
@@ -519,7 +523,7 @@ nvim --startuptime log.txt  " Profile startup time
 
 ### Custom Snippets
 
-1. Edit `~/.config/nvim/snippets/python.snippets` (for example)
+1. Edit `~/.config/nvim/UltiSnips/python.snippets` (for example)
 2. Use `:UltiSnipsEdit` to open in editor
 3. Format: `snippet trigger "description" b ... endsnippet`
 
@@ -538,4 +542,3 @@ nvim --startuptime log.txt  " Profile startup time
 **Configuration: D0n9X1n (original) → Neovim Lua port**
 
 Enjoy your Neovim! 🎉
-

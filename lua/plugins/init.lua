@@ -42,10 +42,23 @@ return {
 
   -- Completion & Snippets
   {
-    'ycm-core/YouCompleteMe',
-    build = './install.py --clang-completer',
+    'neovim/nvim-lspconfig',
     config = function()
-      require('config.plugins.ycm')
+      require('config.plugins.lsp')
+    end,
+  },
+  {
+    'hrsh7th/nvim-cmp',
+    dependencies = {
+      'hrsh7th/cmp-nvim-lsp',
+      'hrsh7th/cmp-buffer',
+      'hrsh7th/cmp-path',
+      'hrsh7th/cmp-cmdline',
+      'quangnguyen30192/cmp-nvim-ultisnips',
+      'SirVer/ultisnips',
+    },
+    config = function()
+      require('config.plugins.cmp')
     end,
   },
   {

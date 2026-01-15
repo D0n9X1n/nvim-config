@@ -1,36 +1,35 @@
-priority -48
-snippet mod
+snippet mod "mod"
 const int MOD = pow(10, 9) + 7;
 endsnippet
 
-snippet cmp
+snippet cmp "cmp"
 int cmp(const void* a, const void* b) {
     return *(int*)a - *(int*)b;
 }
 endsnippet
 
-snippet fori
+snippet fori "fori"
 int i;
 for (i = 0; i < ${1}; i++) {
 	${2}
 }
 endsnippet
 
-snippet for
+snippet for "for"
 for (i = 0; i < ${1}; i++) {
 	${2}
 }
 endsnippet
 
-snippet read
+snippet read "read"
 freopen("./in.txt","r",stdin);
 endsnippet
 
-snippet r
+snippet r "r"
 return ${1};
 endsnippet
 
-snippet linuxc
+snippet linuxc "linuxc"
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -57,13 +56,13 @@ ${1}
 }
 endsnippet
 
-snippet while
+snippet while "while"
 while (${1}) {
 	${2}
 }
 endsnippet
 
-snippet if
+snippet if "if"
 if (${1}) {
 	${2}
 }

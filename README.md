@@ -8,7 +8,7 @@ This configuration uses **lazy.nvim** as the plugin manager and is written in Lu
 
 - **Plugin Manager**: lazy.nvim for fast, lazy-loaded plugins
 - **Language Support**: TypeScript, JavaScript, GraphQL, Solidity, Go, Python, C/C++, and more
-- **Completion**: YouCompleteMe (YCM) with UltiSnips
+- **Completion**: nvim-cmp with built-in LSP and UltiSnips
 - **File Navigation**: NERDTree, CtrlP with fuzzy search
 - **Version Control**: Git integration with vim-fugitive and GitGutter
 - **UI Enhancements**: Airline statusline, rainbow parentheses, indent guides
@@ -17,10 +17,10 @@ This configuration uses **lazy.nvim** as the plugin manager and is written in Lu
 
 ## Requirements
 
-- **Neovim**: >= 0.7.0
+- **Neovim**: >= 0.11.0
 - **Git**: For plugin management
-- **Python3**: For YouCompleteMe and other plugins
-- **Clang/LLVM**: For YouCompleteMe semantic completion (optional)
+- **Python3**: For Neovim's Python provider and some plugins (optional)
+- **Clang/LLVM**: For the clangd language server (optional)
 
 ### Optional Tools
 
@@ -49,6 +49,7 @@ The installer will:
 4. Verify all necessary files are in place
 
 **Everything is included** - no need to copy snippets separately!
+UltiSnips expects snippets under `UltiSnips/`, which this repo provides.
 The configuration includes all UltiSnips from the original m-vim setup.
 
 ### Manual Installation
@@ -78,13 +79,14 @@ nvim-config/
 │   │   ├── autocmds.lua     # Autocommands
 │   │   ├── theme.lua        # Theme and appearance
 │   │   └── plugins/         # Plugin configurations
-│   │       ├── ycm.lua
+│   │       ├── lsp.lua
+│   │       ├── cmp.lua
 │   │       ├── ultisnips.lua
 │   │       ├── airline.lua
 │   │       └── config.lua
 │   └── plugins/
 │       └── init.lua         # Plugin specifications
-└── snippets/                # Custom snippets directory
+└── UltiSnips/               # UltiSnips snippet directory
     ├── all.snippets
     ├── python.snippets
     ├── js.snippets
@@ -97,7 +99,8 @@ nvim-config/
 
 ## Built-in Snippets
 
-This configuration includes **all UltiSnips** from the original m-vim setup, making it completely self-contained:
+This configuration includes **all UltiSnips** from the original m-vim setup, making it completely self-contained.
+The snippet files live under `UltiSnips/` (UltiSnips format expects that directory name).
 
 ### Snippet Files Included
 
@@ -169,9 +172,9 @@ In insert mode:
 
 | Key | Action |
 |-----|--------|
-| `,jd` | Go to definition (YCM) |
-| `,gd` | Go to declaration (YCM) |
-| `,ee` | Show diagnostics (YCM) |
+| `,jd` | Go to definition (LSP) |
+| `,gd` | Go to declaration (LSP) |
+| `,ee` | Show diagnostics (LSP) |
 | `,t` / `<F9>` | Toggle Tagbar |
 | `,m` | Markdown preview |
 | `,run` / `<F5>` | Quick run code |
@@ -233,37 +236,25 @@ nvim --headless "+Lazy! sync" +qa
 
 ## Important Setup Notes
 
-### YouCompleteMe (YCM)
+### LSP (nvim-lspconfig + nvim-cmp)
 
-YouCompleteMe requires additional setup on first run:
-
-```bash
-# Install Python support
-python3 -m pip install pynvim
-
-# First time YCM setup (in Neovim)
-:YcmRestartServer
-```
-
-For better C/C++ support, install clang:
-```bash
-# Install Xcode command line tools
-xcode-select --install
-```
+Install language servers for the languages you use (e.g. `clangd`, `pyright`,
+`gopls`, `typescript-language-server`). Neovim will auto-start them when the
+executables are available.
 
 ### UltiSnips
 
-- Snippets are stored in `~/.config/nvim/snippets`
+- Snippets are stored in `~/.config/nvim/UltiSnips`
 - Default snippets come from honza/vim-snippets plugin
-- Custom snippets go in the `snippets/` directory
+- Custom snippets go in the `UltiSnips/` directory
 - Edit snippets with `,us`
 
 ### Snippets Directory
 
-Create your custom snippets in `~/.config/nvim/snippets/`:
+Create your custom snippets in `~/.config/nvim/UltiSnips/`:
 
 ```
-snippets/
+UltiSnips/
 ├── python.snippets
 ├── javascript.snippets
 └── all.snippets
@@ -383,19 +374,11 @@ opt.myoption = value
 2. Check for errors with `:checkhealth`
 3. Try `:Lazy sync` to resync plugins
 
-### YouCompleteMe not working
+### LSP not working
 
-```bash
-# Verify Python installation
-python3 --version
-
-# Install required packages
-python3 -m pip install pynvim watchdog
-
-# Rebuild YCM
-cd ~/.local/share/nvim/lazy/YouCompleteMe
-./install.py --clang-completer
-```
+1. Check `:LspInfo` to see attached servers
+2. Ensure the language server binary is installed and on your PATH
+3. Run `:checkhealth` for diagnostics
 
 ### Snippets not expanding
 
