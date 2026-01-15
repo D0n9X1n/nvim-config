@@ -5,49 +5,68 @@
 -- ====================================================================
 
 -- Leader key
-vim.g.mapleader = ','
-vim.g.maplocalleader = ','
+vim.g.mapleader = ","
+vim.g.maplocalleader = ","
 
--- Load plugin configurations
-require('config.settings')
-require('config.keymaps')
-require('config.autocmds')
-require('config.plugins.config')
+-- Load base configurations (settings/keymaps/autocmds)
+require("config.settings")
+require("config.keymaps")
+require("config.autocmds")
+require("config.plugins.config")
 
+-- ====================================================================
 -- Bootstrap lazy.nvim
-local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
+-- ====================================================================
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
   vim.fn.system({
-    'git',
-    'clone',
-    '--filter=blob:none',
-    'https://github.com/folke/lazy.nvim.git',
-    '--branch=stable',
+    "git",
+    "clone",
+    "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git",
+    "--branch=stable",
     lazypath,
   })
 end
 vim.opt.rtp:prepend(lazypath)
 
--- Load plugins
-require('lazy').setup('plugins', {
-  defaults = { lazy = false },
-  -- Also load optional plugins from private.lua if defined
-  spec = {
-    import = 'plugins',
+-- ====================================================================
+-- Plugins spec (merge public + private)
+-- ====================================================================
+local spec = {
+  -- load your normal plugins from lua/plugins/*.lua (your current structure)
+  { import = "plugins" },
+}
+
+-- Optional: merge plugins from lua/config/private.lua (if exists)
+-- private.lua should return a table like:
+-- return { { "wakatime/vim-wakatime" }, { "folke/todo-comments.nvim", ... } }
+local private_ok, private_plugins = pcall(require, "config.private")
+if private_ok and type(private_plugins) == "table" then
+  vim.list_extend(spec, private_plugins)
+end
+
+-- Setup lazy.nvim
+require("lazy").setup(spec, {
+  defaults = {
+    lazy = false, -- load plugins at startup by default
+  },
+  install = {
+    missing = true,
+    colorscheme = { "default" },
+  },
+  checker = {
+    enabled = false, -- set true if you want auto update checking
   },
 })
 
--- Load optional plugins from private.lua if user has defined them
-local private_plugins_ok, private_plugins = pcall(require, 'config.private')
-if private_plugins_ok and type(private_plugins) == 'table' then
-  require('lazy').load({ plugins = private_plugins })
-end
+-- ====================================================================
+-- Theme (load after plugins)
+-- ====================================================================
+require("config.theme")
 
--- Load theme after plugins are installed
-require('config.theme')
-
--- Load private customizations (if available)
-local private_ok, _ = pcall(require, 'config.private')
-if not private_ok then
-  -- Private config not found, that's okay
-end
+-- ====================================================================
+-- Optional: load private custom configs (keymaps/settings/autocmds)
+-- If you want, create lua/config/private_config.lua for personal settings.
+-- ====================================================================
+pcall(require, "config.private_config")
