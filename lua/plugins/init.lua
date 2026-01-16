@@ -4,6 +4,13 @@
 
 return {
   -- Language Support
+  {
+    'nvim-treesitter/nvim-treesitter',
+    build = ':TSUpdate',
+    config = function()
+      require('config.plugins.treesitter')
+    end,
+  },
   { 'leafgarland/typescript-vim' },
   { 'pangloss/vim-javascript' },
   { 'jparise/vim-graphql' },
@@ -12,7 +19,7 @@ return {
   { 'tomlion/vim-solidity' },
 
   -- Formatter / Linting
-  { 'editorconfig/editorconfig-vim' },
+  { 'gpanders/editorconfig.nvim' },
   { 'Chiel92/vim-autoformat' },
 
   -- Colorschemes
@@ -23,9 +30,26 @@ return {
   { 'ayu-theme/ayu-vim' },
 
   -- HTML / CSS / Markdown
-  { 'ap/vim-css-color' },
-  { 'mattn/emmet-vim' },
-  { 'tpope/vim-markdown' },
+  {
+    'NvChad/nvim-colorizer.lua',
+    config = function()
+      require('config.plugins.colorizer')
+    end,
+  },
+  {
+    'olrtg/nvim-emmet',
+    config = function()
+      require('config.plugins.emmet')
+    end,
+  },
+  {
+    'MeanderingProgrammer/markdown.nvim',
+    dependencies = { 'nvim-treesitter/nvim-treesitter' },
+    ft = { 'markdown' },
+    config = function()
+      require('config.plugins.markdown')
+    end,
+  },
   {
     'iamcco/markdown-preview.nvim',
     build = 'cd app && npm install',
@@ -45,6 +69,13 @@ return {
     'neovim/nvim-lspconfig',
     config = function()
       require('config.plugins.lsp')
+    end,
+  },
+  {
+    'pmizio/typescript-tools.nvim',
+    dependencies = { 'nvim-lua/plenary.nvim' },
+    config = function()
+      require('config.plugins.typescript-tools')
     end,
   },
   {

@@ -6,31 +6,38 @@ This configuration uses **lazy.nvim** as the plugin manager and is written in Lu
 
 ## Features
 
-- **Plugin Manager**: lazy.nvim for fast, lazy-loaded plugins
-- **Language Support**: TypeScript, JavaScript, GraphQL, Solidity, Go, Python, C/C++, and more
+- **Plugin Manager**: lazy.nvim
+- **Language Support**: Treesitter-based highlighting + LSP (TypeScript/JavaScript, GraphQL, Solidity, Go, Python, C/C++)
 - **Completion**: nvim-cmp with built-in LSP and UltiSnips
-- **File Navigation**: NERDTree, CtrlP with fuzzy search
-- **Version Control**: Git integration with vim-fugitive and GitGutter
-- **UI Enhancements**: Airline statusline, rainbow parentheses, indent guides
-- **Code Quality**: Autoformat, linting support via EditorConfig
+- **File Navigation/Search**: neo-tree, Telescope, CtrlSF, Ag, bufferline, buffer manager
+- **Version Control**: vim-fugitive + GitGutter
+- **UI Enhancements**: lualine, rainbow parentheses, indent guides, wilder cmdline
+- **Code Quality**: Autoformat (vim-autoformat), EditorConfig
+- **Web/Markdown**: nvim-colorizer, nvim-emmet, markdown.nvim, markdown-preview
 - **Colorschemes**: Gruvbox (default), Solarized, Everforest, Base16, and more
 
 ## Requirements
 
-- **Neovim**: >= 0.11.0
+- **Neovim**: >= 0.10.0
 - **Git**: For plugin management
 - **Python3**: For Neovim's Python provider and some plugins (optional)
 - **Clang/LLVM**: For the clangd language server (optional)
 
 ### Optional Tools
 
-For enhanced functionality, install these tools:
+For enhanced functionality (Telescope, search, tags), install these tools:
 
 ```bash
 brew install ripgrep          # Fast search (alternative to ag)
 brew install the_silver_searcher  # Silver searcher
 brew install universal-ctags  # Tag generation
 brew install fzf              # Fuzzy finder
+```
+
+Emmet support requires `emmet-language-server`:
+
+```bash
+npm install -g @olrtg/emmet-language-server
 ```
 
 ## Installation
@@ -82,7 +89,17 @@ nvim-config/
 │   │       ├── lsp.lua
 │   │       ├── cmp.lua
 │   │       ├── ultisnips.lua
-│   │       ├── airline.lua
+│   │       ├── lualine.lua
+│   │       ├── bufferline.lua
+│   │       ├── buffer_manager.lua
+│   │       ├── telescope.lua
+│   │       ├── neo-tree.lua
+│   │       ├── typescript-tools.lua
+│   │       ├── treesitter.lua
+│   │       ├── colorizer.lua
+│   │       ├── emmet.lua
+│   │       ├── markdown.lua
+│   │       ├── wilder.lua
 │   │       └── config.lua
 │   └── plugins/
 │       └── init.lua         # Plugin specifications
@@ -145,9 +162,10 @@ In insert mode:
 
 | Key | Action |
 |-----|--------|
-| `,n` | Toggle NERDTree |
-| `,p` | CtrlP file search |
-| `,f` | CtrlPFunky (function search) |
+| `,n` | Toggle neo-tree |
+| `,p` | Telescope file search |
+| `,f` | Telescope live grep |
+| `,b` | Telescope buffers |
 | `,s` | Ag (search in files) |
 | `\` | CtrlSF (search context) |
 
@@ -175,7 +193,8 @@ In insert mode:
 | `,jd` | Go to definition (LSP) |
 | `,gd` | Go to declaration (LSP) |
 | `,ee` | Show diagnostics (LSP) |
-| `,t` / `<F9>` | Toggle Tagbar |
+| `,t` / `,tt` | Open split terminal |
+| `<F9>` | Toggle Tagbar |
 | `,m` | Markdown preview |
 | `,run` / `<F5>` | Quick run code |
 
@@ -189,7 +208,7 @@ In insert mode:
 
 | Key | Action |
 |-----|--------|
-| `,b` | Toggle background (dark/light) |
+| `,bg` | Toggle background (dark/light) |
 | `,ln` / `<F10>` | Toggle line numbers |
 | `,rln` / `<F6>` | Toggle relative numbers |
 | `,wr` / `<F4>` | Toggle line wrap |
@@ -240,7 +259,13 @@ nvim --headless "+Lazy! sync" +qa
 
 Install language servers for the languages you use (e.g. `clangd`, `pyright`,
 `gopls`, `typescript-language-server`). Neovim will auto-start them when the
-executables are available.
+executables are available. TypeScript is additionally configured via
+`pmizio/typescript-tools.nvim`.
+
+### Emmet
+
+HTML/CSS Emmet is powered by `olrtg/nvim-emmet` and requires the
+`emmet-language-server` binary on your PATH.
 
 ### UltiSnips
 

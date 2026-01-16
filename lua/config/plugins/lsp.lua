@@ -5,8 +5,9 @@
 -- Configure diagnostics to show virtual text (inline on code)
 vim.diagnostic.config({
   virtual_text = {
-    prefix = "",
-    spacing = 4,
+    prefix = "!",
+    spacing = 2,
+    severity = { min = vim.diagnostic.severity.ERROR },
   },
   signs = false,
   underline = true,
@@ -35,13 +36,14 @@ local function setup_if_executable(server, cmd, opts)
   vim.lsp.enable(server)
 end
 
-setup_if_executable('ts_ls', 'typescript-language-server')
 setup_if_executable('pyright', 'pyright-langserver')
 setup_if_executable('gopls', 'gopls')
 setup_if_executable('clangd', 'clangd')
 setup_if_executable('bashls', 'bash-language-server')
 setup_if_executable('jsonls', 'vscode-json-language-server')
 setup_if_executable('yamlls', 'yaml-language-server')
+setup_if_executable('graphql', 'graphql-lsp')
+setup_if_executable('solidity_ls', 'solidity-language-server')
 setup_if_executable('lua_ls', 'lua-language-server', {
   settings = {
     Lua = {

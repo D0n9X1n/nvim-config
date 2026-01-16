@@ -43,8 +43,6 @@ vim.cmd('hi! LspDiagnosticsUnderlineWarning cterm=underline gui=underline ctermf
 vim.cmd('hi! LspDiagnosticsVirtualTextWarning ctermfg=208 guifg=#ff8800')
 vim.cmd('hi! LspDiagnosticsSignWarning ctermfg=208 guifg=#ff8800')
 
--- Hide diagnostic virtual text.
-vim.diagnostic.config({ virtual_text = false })
 
 -- Softer spell-check highlights
 vim.cmd([[

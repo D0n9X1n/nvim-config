@@ -77,6 +77,3 @@ g.rainbow_conf = {
 
 -- Autoformat
 g.autoformat_verbosemode = 0
-
--- Emmet
-g.user_emmet_install_global = 0
