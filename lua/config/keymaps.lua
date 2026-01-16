@@ -58,7 +58,7 @@ map('n', '<F10>', ':set number! number?<CR>', opts)
 map('n', '<F12>', ':GitGutterToggle<CR>', opts)
 
 -- Leader mappings
-map('n', '<leader>b', function() set_bg_color() end, { silent = true })
+map('n', '<leader>bg', function() set_bg_color() end, { silent = true })
 map('n', '<leader>af', ':Autoformat<CR>', opts)
 map('n', '<leader>wr', ':set wrap! wrap?<CR>', opts)
 map('n', '<leader>run', ':QuickRun<CR>', opts)
@@ -80,8 +80,8 @@ map('n', 'L', '$', opts)
 map('v', 'H', '^', opts)
 map('v', 'L', '$', opts)
 
--- Map ; to : for faster command entry
-map('n', ';', ':', opts)
+-- Map ; to : for faster command entry (show cmdline immediately)
+map('n', ';', ':', { noremap = true })
 
 -- Search mappings
 map('n', '<space>', '/', opts)
@@ -151,13 +151,14 @@ map('n', '`', "'", opts)
 map('n', 'U', '<C-r>', opts)
 
 -- Plugin specific mappings
-map('n', '<leader>p', ':CtrlP<CR>', opts)
-map('n', '<leader>f', ':CtrlPFunky<CR>', opts)
-map('n', '<leader>n', ':NERDTreeToggle<CR>', opts)
+map('n', '<leader>p', ':Telescope find_files<CR>', opts)
+map('n', '<leader>f', ':Telescope live_grep<CR>', opts)
+map('n', '<leader>n', ':Neotree toggle<CR>', opts)
 map('n', '<leader>m', ':MarkdownPreviewToggle<CR>', opts)
-map('n', '<leader>t', ':TagbarToggle<CR>', opts)
+map('n', '<leader>t', ':split | terminal<CR>', opts)
 map('n', '<F9>', ':TagbarToggle<CR>', opts)
 map('n', '<leader>us', ':UltiSnipsEdit<CR>', opts)
+map('n', '<leader>tt', ':split | terminal<CR>', opts)
 map('n', '<leader>jd', function() vim.lsp.buf.definition() end, opts)
 map('n', '<leader>gd', function() vim.lsp.buf.declaration() end, opts)
 map('n', '<leader>ee', function() vim.diagnostic.open_float() end, opts)
@@ -166,6 +167,7 @@ map('n', '<leader>s', ':Ag ', opts)
 map('n', '\\', '<Plug>CtrlSFCwordPath<CR>', opts)
 map('n', '<leader>a', '<Plug>(EasyAlign)', opts)
 map('v', '<leader>a', '<Plug>(EasyAlign)', opts)
+map('n', '<leader>b', ':Telescope buffers<CR>', opts)
 
 -- EasyMotion mappings
 map('n', '<leader><leader>h', '<Plug>(easymotion-linebackward)', opts)

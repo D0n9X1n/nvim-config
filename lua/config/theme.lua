@@ -23,6 +23,29 @@ vim.cmd('hi! link SignColumn LineNr')
 vim.cmd('hi! link ShowMarksHLl DiffAdd')
 vim.cmd('hi! link ShowMarksHLu DiffChange')
 
+-- LSP diagnostics: red text + underline + virtual text for errors.
+vim.cmd('hi! DiagnosticError ctermfg=Red guifg=Red')
+vim.cmd('hi! DiagnosticUnderlineError cterm=underline gui=underline ctermfg=Red guisp=Red')
+vim.cmd('hi! DiagnosticVirtualTextError ctermfg=Red guifg=Red')
+vim.cmd('hi! DiagnosticSignError ctermfg=Red guifg=Red')
+vim.cmd('hi! LspDiagnosticsDefaultError ctermfg=Red guifg=Red')
+vim.cmd('hi! LspDiagnosticsUnderlineError cterm=underline gui=underline ctermfg=Red guisp=Red')
+vim.cmd('hi! LspDiagnosticsVirtualTextError ctermfg=Red guifg=Red')
+vim.cmd('hi! LspDiagnosticsSignError ctermfg=Red guifg=Red')
+
+-- LSP diagnostics: orange warnings.
+vim.cmd('hi! DiagnosticWarn ctermfg=208 guifg=#ff8800')
+vim.cmd('hi! DiagnosticUnderlineWarn cterm=underline gui=underline ctermfg=208 guisp=#ff8800')
+vim.cmd('hi! DiagnosticVirtualTextWarn ctermfg=208 guifg=#ff8800')
+vim.cmd('hi! DiagnosticSignWarn ctermfg=208 guifg=#ff8800')
+vim.cmd('hi! LspDiagnosticsDefaultWarning ctermfg=208 guifg=#ff8800')
+vim.cmd('hi! LspDiagnosticsUnderlineWarning cterm=underline gui=underline ctermfg=208 guisp=#ff8800')
+vim.cmd('hi! LspDiagnosticsVirtualTextWarning ctermfg=208 guifg=#ff8800')
+vim.cmd('hi! LspDiagnosticsSignWarning ctermfg=208 guifg=#ff8800')
+
+-- Hide diagnostic virtual text.
+vim.diagnostic.config({ virtual_text = false })
+
 -- Softer spell-check highlights
 vim.cmd([[
 highlight clear SpellBad

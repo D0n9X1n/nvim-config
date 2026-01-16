@@ -86,25 +86,48 @@ return {
   { 'Lokaltog/vim-easymotion' },
 
   -- File Search / Navigation
-  {
-    'ctrlpvim/ctrlp.vim',
-    dependencies = { 'tacahiroy/ctrlp-funky' },
-  },
   { 'dyng/ctrlsf.vim' },
 
   -- UI / Buffers
   {
-    'vim-airline/vim-airline',
-    dependencies = { 'vim-airline/vim-airline-themes' },
+    'nvim-lualine/lualine.nvim',
+    dependencies = { 'nvim-tree/nvim-web-devicons' },
     config = function()
-      require('config.plugins.airline')
+      require('config.plugins.lualine')
     end,
   },
-
+  {
+    'akinsho/bufferline.nvim',
+    dependencies = { 'nvim-tree/nvim-web-devicons' },
+    config = function()
+      require('config.plugins.bufferline')
+    end,
+  },
+  {
+    'j-morano/buffer_manager.nvim',
+    dependencies = { 'nvim-lua/plenary.nvim' },
+    config = function()
+      require('config.plugins.buffer_manager')
+    end,
+  },
+  {
+    'nvim-telescope/telescope.nvim',
+    dependencies = { 'nvim-lua/plenary.nvim' },
+    config = function()
+      require('config.plugins.telescope')
+    end,
+  },
   -- File Tree
   {
-    'scrooloose/nerdtree',
-    dependencies = { 'jistr/vim-nerdtree-tabs' },
+    'nvim-neo-tree/neo-tree.nvim',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      'nvim-tree/nvim-web-devicons',
+      'MunifTanjim/nui.nvim',
+    },
+    config = function()
+      require('config.plugins.neo-tree')
+    end,
   },
 
   -- Git Tools
@@ -114,4 +137,11 @@ return {
   -- Misc Tools
   { 'sjl/gundo.vim' },
   { 'MikeCoder/quickrun.vim' },
+  {
+    'gelguy/wilder.nvim',
+    build = ':UpdateRemotePlugins',
+    config = function()
+      require('config.plugins.wilder')
+    end,
+  },
 }

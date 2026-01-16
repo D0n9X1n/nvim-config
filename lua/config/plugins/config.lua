@@ -13,26 +13,6 @@ g.NERDCustomDelimiters = {
   cpp = { left = '/*', right = '*/' }
 }
 
--- CtrlP
-g.ctrlp_map = '<leader>p'
-g.ctrlp_cmd = 'CtrlP'
-g.ctrlp_custom_ignore = {
-  dir = [[^\v[\/](\.(git|hg|svn|rvm|)|node_modules)$]],
-  file = [[^\v\.(exe|so|dll|zip|tar|tar.gz|pyc)$]],
-}
-g.ctrlp_working_path_mode = 0
-g.ctrlp_match_window_bottom = 1
-g.ctrlp_max_height = 15
-g.ctrlp_follow_symlinks = 1
-
-if vim.fn.executable('ag') == 1 then
-  g.ctrlp_user_command = 'ag %s -l --nocolor -g ""'
-  g.ctrlp_use_caching = 0
-end
-
-g.ctrlp_funky_syntax_highlight = 1
-g.ctrlp_extensions = { 'funky' }
-
 -- CtrlSF
 g.ctrlsf_auto_close = 0
 g.ctrlsf_confirm_save = 0

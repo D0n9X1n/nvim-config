@@ -57,7 +57,7 @@ opt.hidden = true
 
 -- Terminal settings
 opt.ttyfast = true
-opt.mouse = ''  -- disable mouse
+opt.mouse = 'a'
 
 -- Line number settings
 opt.relativenumber = false

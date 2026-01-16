@@ -2,6 +2,18 @@
 -- LSP Configuration
 -- ====================================================================
 
+-- Configure diagnostics to show virtual text (inline on code)
+vim.diagnostic.config({
+  virtual_text = {
+    prefix = "",
+    spacing = 4,
+  },
+  signs = false,
+  underline = true,
+  update_in_insert = false,
+  severity_sort = true,
+})
+
 local lspconfig = vim.lsp.config
 
 local capabilities = vim.lsp.protocol.make_client_capabilities()
