@@ -139,13 +139,6 @@ return {
     end,
   },
   {
-    'j-morano/buffer_manager.nvim',
-    dependencies = { 'nvim-lua/plenary.nvim' },
-    config = function()
-      require('config.plugins.buffer_manager')
-    end,
-  },
-  {
     'nvim-telescope/telescope.nvim',
     dependencies = { 'nvim-lua/plenary.nvim' },
     config = function()

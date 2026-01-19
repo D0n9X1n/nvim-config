@@ -42,7 +42,6 @@ nvim-config/
 │   │       ├── ultisnips.lua   # UltiSnips config
 │   │       ├── lualine.lua     # Statusline config
 │   │       ├── bufferline.lua  # Bufferline config
-│   │       ├── buffer_manager.lua # Buffer manager config
 │   │       ├── telescope.lua   # Telescope config
 │   │       ├── neo-tree.lua    # File tree config
 │   │       ├── typescript-tools.lua # TypeScript tools config

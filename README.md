@@ -9,7 +9,7 @@ This configuration uses **lazy.nvim** as the plugin manager and is written in Lu
 - **Plugin Manager**: lazy.nvim
 - **Language Support**: Treesitter-based highlighting + LSP (TypeScript/JavaScript, GraphQL, Solidity, Go, Python, C/C++)
 - **Completion**: nvim-cmp with built-in LSP and UltiSnips
-- **File Navigation/Search**: neo-tree, Telescope, CtrlSF, Ag, bufferline, buffer manager
+- **File Navigation/Search**: neo-tree, Telescope, CtrlSF, Ag, bufferline
 - **Version Control**: vim-fugitive + GitGutter
 - **UI Enhancements**: lualine, bufferline, wilder cmdline, rainbow parentheses, indent guides
 - **Code Quality**: Autoformat (vim-autoformat), EditorConfig
@@ -93,7 +93,6 @@ nvim-config/
 │   │       ├── ultisnips.lua
 │   │       ├── lualine.lua
 │   │       ├── bufferline.lua
-│   │       ├── buffer_manager.lua
 │   │       ├── telescope.lua
 │   │       ├── neo-tree.lua
 │   │       ├── typescript-tools.lua
