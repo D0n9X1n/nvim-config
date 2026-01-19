@@ -11,14 +11,14 @@ This configuration uses **lazy.nvim** as the plugin manager and is written in Lu
 - **Completion**: nvim-cmp with built-in LSP and UltiSnips
 - **File Navigation/Search**: neo-tree, Telescope, CtrlSF, Ag, bufferline, buffer manager
 - **Version Control**: vim-fugitive + GitGutter
-- **UI Enhancements**: lualine, rainbow parentheses, indent guides, wilder cmdline
+- **UI Enhancements**: lualine, bufferline, wilder cmdline, rainbow parentheses, indent guides
 - **Code Quality**: Autoformat (vim-autoformat), EditorConfig
 - **Web/Markdown**: nvim-colorizer, nvim-emmet, markdown.nvim, markdown-preview
 - **Colorschemes**: Gruvbox (default), Solarized, Everforest, Base16, and more
 
 ## Requirements
 
-- **Neovim**: >= 0.10.0
+- **Neovim**: >= 0.10.0 (0.11+ recommended)
 - **Git**: For plugin management
 - **Python3**: For Neovim's Python provider and some plugins (optional)
 - **Clang/LLVM**: For the clangd language server (optional)
@@ -51,9 +51,9 @@ cd /path/to/nvim-config
 
 The installer will:
 1. Backup your existing Neovim config
-2. Copy this configuration to `~/.config/nvim` (including all snippets)
-3. Install optional dependencies via Homebrew
-4. Verify all necessary files are in place
+2. Symlink this configuration into `~/.config/nvim` (including all snippets)
+3. Keep `lua/config/private.lua` local and create it if missing
+4. Install optional dependencies via Homebrew
 
 **Everything is included** - no need to copy snippets separately!
 UltiSnips expects snippets under `UltiSnips/`, which this repo provides.
@@ -85,6 +85,8 @@ nvim-config/
 │   │   ├── keymaps.lua      # Key bindings
 │   │   ├── autocmds.lua     # Autocommands
 │   │   ├── theme.lua        # Theme and appearance
+│   │   ├── private.lua      # Optional plugins (local)
+│   │   ├── private_config.lua # Personal keymaps/settings/autocmds
 │   │   └── plugins/         # Plugin configurations
 │   │       ├── lsp.lua
 │   │       ├── cmp.lua
@@ -260,7 +262,8 @@ nvim --headless "+Lazy! sync" +qa
 Install language servers for the languages you use (e.g. `clangd`, `pyright`,
 `gopls`, `typescript-language-server`). Neovim will auto-start them when the
 executables are available. TypeScript is additionally configured via
-`pmizio/typescript-tools.nvim`.
+`pmizio/typescript-tools.nvim`. Diagnostics are configured to show only ERROR
+virtual text and keep the sign column empty by default.
 
 ### Emmet
 
@@ -311,14 +314,16 @@ vim.g.mapleader = ';'  -- Change from ',' to ';'
 
 ### Private Customizations (private.lua)
 
-The `lua/config/private.lua` file is designed for your personal customizations and will **never be overwritten** on updates.
+The `lua/config/private.lua` file is designed for your optional plugin list and
+will **never be overwritten** on updates. For personal keymaps/settings, create
+`lua/config/private_config.lua`.
 
 #### Add Optional Plugins
 
-Uncomment and modify the return statement in `private.lua`:
+Define optional plugins in `private.lua`:
 
 ```lua
-return {
+local optional_plugins = {
   -- Wakatime - Time tracking for coding
   { 'wakatime/vim-wakatime' },
   
@@ -326,13 +331,14 @@ return {
   { 'tpope/vim-eunuch' },           -- Unix shell commands
   { 'numToStr/Comment.nvim' },      -- Better commenting
   { 'mbbill/undotree' },            -- Visual undo history
-  { 'folke/todo-comments.nvim' },   -- Highlight TODO comments
 }
+
+return optional_plugins
 ```
 
 #### Add Custom Keymaps
 
-In `private.lua`:
+In `private_config.lua`:
 ```lua
 local map = vim.keymap.set
 local opts = { noremap = true, silent = true }
@@ -342,7 +348,7 @@ map('n', '<leader>x', ':MyCommand<CR>', opts)
 
 #### Add Custom Settings
 
-In `private.lua`:
+In `private_config.lua`:
 ```lua
 local opt = vim.opt
 
@@ -352,7 +358,7 @@ opt.shiftwidth = 4
 
 #### Add Custom Autocommands
 
-In `private.lua`:
+In `private_config.lua`:
 ```lua
 local augroup = vim.api.nvim_create_augroup
 local autocmd = vim.api.nvim_create_autocmd
@@ -366,7 +372,9 @@ autocmd('BufWritePre', {
 })
 ```
 
-**Note**: `private.lua` is your safe space for customizations - it's in `.gitignore` and will never be touched by updates!
+**Note**: `private.lua` is your safe space for optional plugins - it's in
+`.gitignore` and will never be touched by updates. Use `private_config.lua` for
+personal settings, keymaps, and autocmds.
 
 ### Disable Plugins
 
@@ -376,6 +384,7 @@ In `lua/plugins/init.lua`, comment out or remove plugin entries:
 ```
 
 For optional plugins, use `private.lua` instead (it won't be overwritten on updates).
+For personal config, use `private_config.lua`.
 
 ### Add Custom Keymaps
 

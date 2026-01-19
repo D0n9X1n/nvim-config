@@ -56,34 +56,51 @@ fi
 # Create symlinks for all files/folders (except private.lua)
 echo -e "${YELLOW}Setting up symlinks...${NC}"
 
+link_item() {
+    local src="$1"
+    local target="$2"
+    local name="$3"
+
+    if [ -L "$target" ]; then
+        rm "$target"
+        echo -e "${GREEN}✓ Updated symlink: ${name}${NC}"
+    elif [ ! -e "$target" ]; then
+        echo -e "${YELLOW}Linking ${name}...${NC}"
+    else
+        echo -e "${YELLOW}Skipping ${name} (already exists)${NC}"
+        return
+    fi
+
+    ln -s "$src" "$target"
+}
+
+# Top-level items (except lua/ and private.lua)
 for item in "$SCRIPT_DIR"/*; do
     item_name=$(basename "$item")
-    
-    # Skip hidden files and directories
     if [[ "$item_name" == .* ]]; then
         continue
     fi
-    
-    # Skip private.lua (we handle it separately)
-    if [ "$item_name" = "private.lua" ]; then
+    if [ "$item_name" = "lua" ] || [ "$item_name" = "private.lua" ]; then
         continue
     fi
-    
-    target="${NVIM_CONFIG_DIR}/${item_name}"
-    
-    # Remove existing symlink/file if it points to the old location
-    if [ -L "$target" ]; then
-        rm "$target"
-        echo -e "${GREEN}✓ Updated symlink: ${item_name}${NC}"
-    elif [ ! -e "$target" ]; then
-        echo -e "${YELLOW}Linking ${item_name}...${NC}"
+    link_item "$item" "${NVIM_CONFIG_DIR}/${item_name}" "$item_name"
+done
+
+# lua/ with local lua/config/private.lua
+mkdir -p "${NVIM_CONFIG_DIR}/lua/config"
+for lua_item in "$SCRIPT_DIR/lua"/*; do
+    lua_name=$(basename "$lua_item")
+    if [ "$lua_name" = "config" ]; then
+        for cfg_item in "$lua_item"/*; do
+            cfg_name=$(basename "$cfg_item")
+            if [ "$cfg_name" = "private.lua" ]; then
+                continue
+            fi
+            link_item "$cfg_item" "${NVIM_CONFIG_DIR}/lua/config/${cfg_name}" "lua/config/${cfg_name}"
+        done
     else
-        # Don't overwrite existing files/directories
-        echo -e "${YELLOW}Skipping ${item_name} (already exists)${NC}"
-        continue
+        link_item "$lua_item" "${NVIM_CONFIG_DIR}/lua/${lua_name}" "lua/${lua_name}"
     fi
-    
-    ln -s "$item" "$target"
 done
 
 echo -e "${GREEN}Symlinks created${NC}"
@@ -121,17 +138,17 @@ if [ ! -f "$PRIVATE_LUA" ]; then
 -- Example: Enable Wakatime (time tracking)
 -- ====================================================================
 
--- return {
---   -- Wakatime - Time tracking for coding
---   -- Get API key from: https://wakatime.com/settings/account
---   { 'wakatime/vim-wakatime' },
---
---   -- Other optional plugins you might like:
---   -- { 'tpope/vim-eunuch' },           -- Unix shell commands
---   -- { 'numToStr/Comment.nvim' },      -- Better commenting
---   -- { 'mbbill/undotree' },            -- Visual undo history
---   -- { 'folke/todo-comments.nvim' },   -- Highlight TODO comments
--- }
+local optional_plugins = {
+  -- Wakatime - Time tracking for coding
+  -- Get API key from: https://wakatime.com/settings/account
+  -- { 'wakatime/vim-wakatime' },
+
+  -- Other optional plugins you might like:
+  -- { 'tpope/vim-eunuch' },           -- Unix shell commands
+  -- { 'numToStr/Comment.nvim' },      -- Better commenting
+  -- { 'mbbill/undotree' },            -- Visual undo history
+  -- { 'folke/todo-comments.nvim' },   -- Highlight TODO comments
+}
 
 -- ====================================================================
 -- CUSTOM KEYMAPS
@@ -215,6 +232,8 @@ if [ ! -f "$PRIVATE_LUA" ]; then
 -- ====================================================================
 -- END OF CUSTOMIZATIONS
 -- ====================================================================
+
+return optional_plugins
 EOF
     echo -e "${GREEN}✓ Created private.lua${NC}"
 else

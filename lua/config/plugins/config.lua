@@ -29,6 +29,11 @@ g.ctrlsf_mapping = {
 g.gitgutter_map_keys = 0
 g.gitgutter_enabled = 0
 g.gitgutter_highlight_lines = 1
+g.gitgutter_sign_added = ''
+g.gitgutter_sign_modified = ''
+g.gitgutter_sign_removed = ''
+g.gitgutter_sign_removed_first_line = ''
+g.gitgutter_sign_modified_removed = ''
 
 -- NERDTree
 g.NERDTreeIgnore = {

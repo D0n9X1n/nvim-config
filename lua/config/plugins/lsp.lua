@@ -3,9 +3,31 @@
 -- ====================================================================
 
 -- Configure diagnostics to show virtual text (inline on code)
+local diagnostic_icons = {
+  Error = "",
+  Warn = "",
+  Info = "",
+  Hint = "󰌵",
+}
+
+local severity_name = {
+  [vim.diagnostic.severity.ERROR] = "Error",
+  [vim.diagnostic.severity.WARN] = "Warn",
+  [vim.diagnostic.severity.INFO] = "Info",
+  [vim.diagnostic.severity.HINT] = "Hint",
+}
+
+for name, icon in pairs(diagnostic_icons) do
+  local hl = "DiagnosticSign" .. name
+  vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
+end
+
 vim.diagnostic.config({
   virtual_text = {
-    prefix = "!",
+    prefix = function(diagnostic)
+      local name = severity_name[diagnostic.severity]
+      return diagnostic_icons[name] or "●"
+    end,
     spacing = 2,
     severity = { min = vim.diagnostic.severity.ERROR },
   },

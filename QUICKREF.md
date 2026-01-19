@@ -11,7 +11,8 @@
 - **Plugin configs**: `lua/config/plugins/`
 - **Snippets**: `UltiSnips/` (UltiSnips format requires this directory name)
 - **LSP config**: `lua/config/plugins/lsp.lua` uses `vim.lsp.config` (not `lspconfig.setup`)
-- **Private overrides**: `lua/config/private.lua` (do not overwrite in updates)
+- **Private plugins**: `lua/config/private.lua` (optional plugin list)
+- **Private configs**: `lua/config/private_config.lua` (keymaps/settings/autocmds)
 
 ---
 
@@ -33,13 +34,23 @@ nvim-config/
 │   │   ├── keymaps.lua         # Keyboard mappings
 │   │   ├── autocmds.lua        # Autocommands
 │   │   ├── theme.lua           # Colorscheme & appearance
-│   │   ├── private.lua         # Custom configs (never overwritten)
+│   │   ├── private.lua         # Optional plugins (never overwritten)
+│   │   ├── private_config.lua  # Personal keymaps/settings/autocmds
 │   │   └── plugins/
 │   │       ├── lsp.lua         # LSP config
 │   │       ├── cmp.lua         # Completion config (nvim-cmp)
 │   │       ├── ultisnips.lua   # UltiSnips config
-│   │       ├── airline.lua     # Airline status bar config
-│   │       ├── wakatime.lua    # Wakatime config (example)
+│   │       ├── lualine.lua     # Statusline config
+│   │       ├── bufferline.lua  # Bufferline config
+│   │       ├── buffer_manager.lua # Buffer manager config
+│   │       ├── telescope.lua   # Telescope config
+│   │       ├── neo-tree.lua    # File tree config
+│   │       ├── typescript-tools.lua # TypeScript tools config
+│   │       ├── treesitter.lua  # Treesitter config
+│   │       ├── colorizer.lua   # Colorizer config
+│   │       ├── emmet.lua       # Emmet config
+│   │       ├── markdown.lua    # Markdown config
+│   │       ├── wilder.lua      # Wilder config
 │   │       └── config.lua      # Other plugins config
 │   │
 │   └── plugins/
@@ -62,9 +73,9 @@ nvim-config/
 
 - **Language Support**: TypeScript, JavaScript, GraphQL, C/C++, Python, Solidity
 - **Completion**: nvim-cmp, built-in LSP, UltiSnips, vim-snippets
-- **Navigation**: NERDTree, CtrlP, Tagbar, vim-easymotion
+- **Navigation**: neo-tree, Telescope, Tagbar, vim-easymotion
 - **Version Control**: vim-fugitive, vim-gitgutter
-- **UI Enhancements**: vim-airline, rainbow, indentLine
+- **UI Enhancements**: lualine, bufferline, wilder, indentLine, rainbow
 - **Formatting**: vim-autoformat, EditorConfig
 - **Editing**: vim-surround, vim-repeat, nerdcommenter, EasyAlign
 - **Themes**: Gruvbox, Solarized, Everforest, Base16, Ayu
@@ -104,10 +115,11 @@ nvim
 ## ⌨️ Keyboard Shortcuts (Leader Key: `,`)
 
 ### Files & Navigation
-- `,p` - Open file with CtrlP
-- `,f` - Search functions with CtrlPFunky  
-- `,n` - Toggle NERDTree
+- `,p` - Telescope find files
+- `,f` - Telescope live grep
+- `,n` - Toggle neo-tree
 - `,s` - Search in files with Ag
+- `,b` - Telescope buffers
 - `\` - CtrlSF (search with context)
 
 ### Editing
@@ -130,13 +142,14 @@ nvim
 - `,jd` - Go to definition (LSP)
 - `,gd` - Go to declaration (LSP)
 - `,ee` - Show diagnostics (LSP)
-- `,t` / `<F9>` - Toggle Tagbar
+- `,t` / `,tt` - Open split terminal
+- `<F9>` - Toggle Tagbar
 - `,m` - Markdown preview
 - `,us` - Edit snippets with UltiSnips
 - `,run` / `<F5>` - Quick run code
 
 ### Display & UI
-- `,b` - Toggle background (dark/light)
+- `,bg` - Toggle background (dark/light)
 - `,ln` / `<F10>` - Toggle line numbers
 - `,rln` / `<F6>` - Toggle relative line numbers
 - `,wr` / `<F4>` - Toggle line wrap
@@ -172,7 +185,7 @@ nvim
 - `,,j` - EasyMotion down
 - `,,k` - EasyMotion up
 - `,,l` - EasyMotion forward
-- `,,<space>` - Repeat last motion
+- `,,.` - Repeat last motion
 
 ### Miscellaneous
 - `U` - Redo (mapped from `<C-r>`)
@@ -232,7 +245,7 @@ nvim
 
 ### Required
 
-- **Neovim** >= 0.7.0
+- **Neovim** >= 0.10.0 (0.11+ recommended)
 - **Git** - For plugin management
 - **Python 3** - For Neovim's Python provider and some plugins (optional)
 
@@ -260,25 +273,32 @@ Install language servers for the languages you use (examples: `clangd`,
 when available on your PATH.
 ```
 
+Diagnostics are configured to show only ERROR virtual text and keep the sign
+column empty by default.
+
 ---
 
 ## 🛠️ Customization
 
 ### Using private.lua (Recommended!)
 
-The `lua/config/private.lua` file is **never overwritten** on updates. Use it for:
+The `lua/config/private.lua` file is **never overwritten** on updates and should
+return a list of optional plugins. For keymaps/settings/autocmds, use
+`lua/config/private_config.lua`.
 
 #### Add Optional Plugins
 
 ```lua
-return {
+local optional_plugins = {
   { 'wakatime/vim-wakatime' },
   { 'tpope/vim-eunuch' },
   { 'numToStr/Comment.nvim' },
 }
+
+return optional_plugins
 ```
 
-#### Add Custom Keymaps
+#### Add Custom Keymaps (private_config.lua)
 
 ```lua
 local map = vim.keymap.set
@@ -287,7 +307,7 @@ local opts = { noremap = true, silent = true }
 map('n', '<leader>x', ':MyCommand<CR>', opts)
 ```
 
-#### Add Custom Settings
+#### Add Custom Settings (private_config.lua)
 
 ```lua
 local opt = vim.opt
@@ -297,7 +317,7 @@ opt.shiftwidth = 4
 opt.softtabstop = 4
 ```
 
-#### Add Custom Autocommands
+#### Add Custom Autocommands (private_config.lua)
 
 ```lua
 local augroup = vim.api.nvim_create_augroup
@@ -318,7 +338,8 @@ autocmd('BufWritePre', {
 - **Settings**: `lua/config/settings.lua`
 - **Plugins**: `lua/plugins/init.lua`
 - **Theme**: `lua/config/theme.lua`
-- **Personal**: `lua/config/private.lua` (safe from updates)
+- **Optional plugins**: `lua/config/private.lua`
+- **Personal configs**: `lua/config/private_config.lua`
 
 ### Change Leader Key
 
@@ -453,7 +474,8 @@ nvim --startuptime log.txt  " Profile startup time
 | `lua/config/keymaps.lua` | All keyboard shortcuts |
 | `lua/config/theme.lua` | Colorscheme & UI settings |
 | `lua/config/autocmds.lua` | Auto-commands for file types & events |
-| `lua/config/private.lua` | Your customizations (never overwritten!) |
+| `lua/config/private.lua` | Optional plugin list (never overwritten!) |
+| `lua/config/private_config.lua` | Personal keymaps/settings/autocmds |
 | `lua/plugins/init.lua` | List of 40+ plugins |
 | `lua/config/plugins/*.lua` | Individual plugin configurations |
 

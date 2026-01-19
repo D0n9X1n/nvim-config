@@ -36,6 +36,7 @@ opt.showmatch = true
 opt.matchtime = 2
 opt.laststatus = 2
 opt.cursorline = true
+opt.linespace = 5
 
 -- Search behavior
 opt.hlsearch = true

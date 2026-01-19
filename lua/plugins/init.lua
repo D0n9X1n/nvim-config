@@ -112,6 +112,10 @@ return {
   { 'luochen1990/rainbow' },
   { 'unblevable/quick-scope' },
   { 'terryma/vim-multiple-cursors' },
+  {
+    'folke/todo-comments.nvim',
+    dependencies = { 'nvim-lua/plenary.nvim' },
+  },
 
   -- Movement
   { 'Lokaltog/vim-easymotion' },

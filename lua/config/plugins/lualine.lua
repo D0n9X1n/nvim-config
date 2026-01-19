@@ -2,46 +2,35 @@
 -- Lualine Configuration
 -- ====================================================================
 
-local function pl_wrap(text)
-  return (' %s '):format(text)
-end
-
-local function pl_prefix(symbol, text)
-  if text == '' then
-    return ''
-  end
-  return ('%s %s'):format(symbol, text)
-end
-
 require('lualine').setup({
   options = {
-    icons_enabled = false,
+    icons_enabled = true,
     theme = 'auto',
-    component_separators = { left = '', right = '' },
-    section_separators = { left = '', right = '' },
+    component_separators = { left = '', right = '' },
+    section_separators = { left = '', right = '' },
     disabled_filetypes = {
-      statusline = { 'NvimTree' },
+      statusline = { 'neo-tree' },
     },
     always_divide_middle = true,
   },
   sections = {
-    lualine_a = { { 'mode', fmt = pl_wrap } },
+    lualine_a = { { 'mode' } },
     lualine_b = {
-      { 'branch', fmt = function(text) return pl_prefix('', text) end },
+      { 'branch', icon = '' },
       {
         'diff',
-        symbols = { added = '+', modified = '~', removed = '-' },
+        symbols = { added = ' ', modified = ' ', removed = ' ' },
       },
       {
         'diagnostics',
-        symbols = { error = 'E ', warn = 'W ', info = 'I ', hint = 'H ' },
+        symbols = { error = ' ', warn = ' ', info = ' ', hint = '󰌵 ' },
       },
     },
-    lualine_c = { { 'filename', path = 1, fmt = pl_wrap } },
+    lualine_c = { { 'filename', path = 1 } },
     lualine_x = {
-      { 'encoding', fmt = function(text) return pl_prefix('', text) end },
-      { 'fileformat', fmt = function(text) return pl_prefix('', text) end },
-      { 'filetype', fmt = function(text) return pl_prefix('', text) end },
+      { 'encoding', icon = '' },
+      { 'fileformat', icon = '' },
+      { 'filetype', icon = '󰈔' },
     },
     lualine_y = { 'progress' },
     lualine_z = { 'location' },

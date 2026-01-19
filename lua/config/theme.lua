@@ -9,7 +9,7 @@ local g = vim.g
 opt.background = 'dark'
 
 -- Gruvbox settings
-g.gruvbox_contrast_dark = 'light'
+g.gruvbox_contrast_dark = 'hard'
 g.gruvbox_improved_warnings = 1
 g.gruvbox_sign_column = 'bg0'
 
