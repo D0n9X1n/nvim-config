@@ -4,7 +4,7 @@
 
 require('CopilotChat').setup({
   -- Default model
-  model = 'claude-sonnet-4',
+  model = 'claude-opus-4.6',
 
   -- Show help in virtual text
   show_help = true,
