@@ -37,22 +37,4 @@ require('CopilotChat').setup({
 })
 
 -- Global keymaps
-local map = vim.keymap.set
-
--- Toggle chat
-map('n', '<leader>cc', '<cmd>CopilotChatToggle<cr>', { desc = 'CopilotChat - Toggle' })
-
--- Quick chat with selection
-map('v', '<leader>cc', '<cmd>CopilotChatToggle<cr>', { desc = 'CopilotChat - Toggle with selection' })
-
--- Predefined prompts
-map('n', '<leader>ce', '<cmd>CopilotChatExplain<cr>', { desc = 'CopilotChat - Explain code' })
-map('v', '<leader>ce', '<cmd>CopilotChatExplain<cr>', { desc = 'CopilotChat - Explain selection' })
-map('n', '<leader>cr', '<cmd>CopilotChatReview<cr>', { desc = 'CopilotChat - Review code' })
-map('v', '<leader>cr', '<cmd>CopilotChatReview<cr>', { desc = 'CopilotChat - Review selection' })
-map('n', '<leader>cf', '<cmd>CopilotChatFix<cr>', { desc = 'CopilotChat - Fix code' })
-map('v', '<leader>cf', '<cmd>CopilotChatFix<cr>', { desc = 'CopilotChat - Fix selection' })
-map('n', '<leader>co', '<cmd>CopilotChatOptimize<cr>', { desc = 'CopilotChat - Optimize code' })
-map('v', '<leader>co', '<cmd>CopilotChatOptimize<cr>', { desc = 'CopilotChat - Optimize selection' })
-map('n', '<leader>ct', '<cmd>CopilotChatTests<cr>', { desc = 'CopilotChat - Generate tests' })
-map('v', '<leader>ct', '<cmd>CopilotChatTests<cr>', { desc = 'CopilotChat - Generate tests for selection' })
+vim.keymap.set({ 'n', 'v' }, '<F8>', '<cmd>CopilotChatToggle<cr>', { desc = 'CopilotChat - Toggle' })
