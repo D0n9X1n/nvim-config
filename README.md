@@ -147,8 +147,21 @@ In insert mode:
 | `,` | Leader key |
 | `;` | `:` (faster command mode) |
 | `kj` | `<Esc>` (in insert mode) |
-| `H` | Jump to line start |
-| `L` | Jump to line end |
+| `H` / `L` | Jump to line start / end (normal & visual) |
+| `j` / `k` | Move by display lines (wrapped) |
+| `Y` | Yank to end of line |
+| `U` | Redo |
+| `'` / `` ` `` | Swapped (jump to mark) |
+
+### Search
+
+| Key | Action |
+|-----|--------|
+| `<Space>` | Start search (`/`) |
+| `/` | Very magic search (`/\v`) |
+| `n` / `N` | Next/previous match (centered) |
+| `*` / `#` | Swapped; search results centered |
+| `,/` | Clear search highlight |
 
 ### Navigation
 
@@ -158,6 +171,8 @@ In insert mode:
 | `[b` / `]b` | Previous/next buffer |
 | `<Left>` / `<Right>` | Previous/next buffer |
 | `<C-t>` | New tab |
+| `,q` | Close buffer (smart) |
+| `<C-e>` / `<C-y>` | Fast scroll (2× speed) |
 
 ### File Management
 
@@ -168,24 +183,37 @@ In insert mode:
 | `,f` | Telescope live grep |
 | `,b` | Telescope buffers |
 | `,s` | Ag (search in files) |
-| `\` | CtrlSF (search context) |
+| `\` | CtrlSF (search word under cursor) |
 
 ### Editing
 
 | Key | Action |
 |-----|--------|
-| `,a` | EasyAlign |
+| `,a` | EasyAlign (normal & visual) |
 | `,<space>` | Fix trailing whitespace |
-| `,/` | Clear search highlight |
-| `<F2>/<F3>` | Autoformat |
+| `<F3>` | Autoformat |
 | `,af` | Autoformat |
+| `<` / `>` | Shift and reselect (visual) |
+| `,sa` | Select all |
+| `,z` | Toggle fold |
+| `,w` | Force save with sudo |
+| `w!!` | Write with sudo (command mode) |
 
-### Navigation & Movement
+### EasyMotion
 
 | Key | Action |
 |-----|--------|
-| `,,h/j/k/l` | EasyMotion |
-| `,,<space>` | Repeat last motion |
+| `,,h/j/k/l` | EasyMotion directional |
+| `,,.` | Repeat last motion |
+
+### Multi-Cursor
+
+| Key | Action |
+|-----|--------|
+| `<C-d>` | Select next occurrence |
+| `<C-p>` | Select previous occurrence |
+| `<C-j>` | Skip occurrence |
+| `<Esc>` | Quit multi-cursor |
 
 ### Development
 
@@ -198,12 +226,36 @@ In insert mode:
 | `<F9>` | Toggle Tagbar |
 | `,m` | Markdown preview |
 | `,run` / `<F5>` | Quick run code |
+| `,us` | Edit UltiSnips for current filetype |
+
+### Completion (nvim-cmp)
+
+| Key | Action |
+|-----|--------|
+| `<C-j>` / `<C-k>` | Next/previous completion item |
+| `<C-Space>` | Trigger completion |
+| `<CR>` | Confirm completion |
+
+### Neo-tree (inside panel)
+
+| Key | Action |
+|-----|--------|
+| `l` / `<CR>` | Open file/directory |
+| `h` | Collapse node |
+| `<Space>` | Toggle node |
 
 ### Git
 
 | Key | Action |
 |-----|--------|
 | `,git` / `<F12>` | Toggle GitGutter |
+| `,g` | Quick git add, commit, pull & push |
+
+### AI (Copilot)
+
+| Key | Action |
+|-----|--------|
+| `<F2>` | Toggle CopilotChat |
 
 ### Display
 
@@ -215,6 +267,13 @@ In insert mode:
 | `,wr` / `<F4>` | Toggle line wrap |
 | `,syn` / `<F7>` | Toggle syntax highlighting |
 | `,il` / `<F8>` | Toggle indent guides |
+
+### Command-line
+
+| Key | Action |
+|-----|--------|
+| `<C-a>` / `<C-e>` | Home / End |
+| `<C-j>` / `<C-k>` | Down / Up |
 
 ## Plugin Management
 

@@ -37,4 +37,4 @@ require('CopilotChat').setup({
 })
 
 -- Global keymaps
-vim.keymap.set({ 'n', 'v' }, '<F8>', '<cmd>CopilotChatToggle<cr>', { desc = 'CopilotChat - Toggle' })
+vim.keymap.set({ 'n', 'v' }, '<F2>', '<cmd>CopilotChatToggle<cr>', { desc = 'CopilotChat - Toggle' })
