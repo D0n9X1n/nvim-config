@@ -52,7 +52,9 @@ return {
   },
   {
     'iamcco/markdown-preview.nvim',
-    build = 'cd app && npm install',
+    build = function(plugin)
+      vim.system({ 'bash', 'install.sh' }, { cwd = plugin.dir .. '/app' }):wait()
+    end,
     cmd = { 'MarkdownPreview', 'MarkdownPreviewStop', 'MarkdownPreviewToggle' },
     ft = { 'markdown' },
   },
