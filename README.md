@@ -1,48 +1,36 @@
 # Neovim Configuration
 
-A modern Neovim configuration ported from the original m-vim Vim configuration by D0n9X1n.
+A modern Neovim configuration ported from the original [m-vim](https://github.com/D0n9X1n/m-vim) setup.
+Written in Lua, managed by [lazy.nvim](https://github.com/folke/lazy.nvim).
 
-This configuration uses **lazy.nvim** as the plugin manager and is written in Lua for better performance and maintainability.
+> **For AI agents**: See [`QUICKREF.md`](QUICKREF.md) for a machine-readable technical reference.
 
-## Features
+## Highlights
 
-- **Plugin Manager**: lazy.nvim
-- **Language Support**: Treesitter-based highlighting + LSP (TypeScript/JavaScript, GraphQL, Solidity, Go, Python, C/C++)
-- **Completion**: nvim-cmp with built-in LSP and UltiSnips
-- **File Navigation/Search**: neo-tree, Telescope, CtrlSF, Ag, bufferline
-- **Version Control**: vim-fugitive + GitGutter
-- **UI Enhancements**: lualine, bufferline, wilder cmdline, rainbow parentheses, indent guides
-- **Code Quality**: Autoformat (vim-autoformat), EditorConfig
-- **Web/Markdown**: nvim-colorizer, nvim-emmet, markdown.nvim, markdown-preview
-- **Colorschemes**: Gruvbox (default), Solarized, Everforest, Base16, and more
+- **Lua-native** — fast startup, clean structure
+- **lazy.nvim** plugin manager with auto-bootstrap
+- **LSP + Treesitter** — smart completion, highlighting, and diagnostics out of the box
+- **Telescope** — fuzzy file search, live grep, buffer switching
+- **Neo-tree** — file explorer sidebar
+- **UltiSnips** — bundled snippets for Python, JS, C/C++, Go, PHP
+- **Private overrides** — `private.lua` for personal plugins, never touched by updates
 
 ## Requirements
 
-- **Neovim**: >= 0.10.0 (0.11+ recommended)
-- **Git**: For plugin management
-- **Python3**: For Neovim's Python provider and some plugins (optional)
-- **Clang/LLVM**: For the clangd language server (optional)
+- **Neovim** ≥ 0.10.0 (0.11+ recommended)
+- **Git**
+- A [Nerd Font](https://www.nerdfonts.com/) for icons
 
 ### Optional Tools
 
-For enhanced functionality (Telescope, search, tags), install these tools:
-
 ```bash
-brew install ripgrep          # Fast search (alternative to ag)
-brew install the_silver_searcher  # Silver searcher
-brew install universal-ctags  # Tag generation
-brew install fzf              # Fuzzy finder
+brew install ripgrep the_silver_searcher universal-ctags fzf
+npm install -g @olrtg/emmet-language-server   # for HTML/CSS Emmet
 ```
 
-Emmet support requires `emmet-language-server`:
-
-```bash
-npm install -g @olrtg/emmet-language-server
-```
+Install language servers for the languages you use (e.g. `pyright`, `gopls`, `clangd`, `lua-language-server`).
 
 ## Installation
-
-### Quick Install
 
 ```bash
 cd /path/to/nvim-config
@@ -50,479 +38,182 @@ cd /path/to/nvim-config
 ```
 
 The installer will:
-1. Backup your existing Neovim config
-2. Symlink this configuration into `~/.config/nvim` (including all snippets)
-3. Keep `lua/config/private.lua` local and create it if missing
-4. Install optional dependencies via Homebrew
+1. Back up your existing `~/.config/nvim`
+2. Symlink this config into place
+3. Create `private.lua` if it doesn't exist
+4. Install optional tools via Homebrew
 
-**Everything is included** - no need to copy snippets separately!
-UltiSnips expects snippets under `UltiSnips/`, which this repo provides.
-The configuration includes all UltiSnips from the original m-vim setup.
+On first launch, lazy.nvim auto-installs all plugins.
 
-### Manual Installation
+### Manual
 
 ```bash
-# Clone or copy the configuration
-git clone <repo-url> ~/.config/nvim
-
-# Or copy manually
-cp -r nvim-config/* ~/.config/nvim/
+git clone git@github.com:D0n9X1n/nvim-config.git ~/.config/nvim
 ```
 
-On first run, Neovim will automatically:
-1. Install lazy.nvim (plugin manager)
-2. Download and install all plugins
-3. Set up your environment
-
-## Configuration Structure
+## Structure
 
 ```
-nvim-config/
-├── init.lua                 # Main entry point
-├── lua/
-│   ├── config/
-│   │   ├── settings.lua     # General settings
-│   │   ├── keymaps.lua      # Key bindings
-│   │   ├── autocmds.lua     # Autocommands
-│   │   ├── theme.lua        # Theme and appearance
-│   │   ├── private.lua      # Optional plugins (local)
-│   │   ├── private_config.lua # Personal keymaps/settings/autocmds
-│   │   └── plugins/         # Plugin configurations
-│   │       ├── lsp.lua
-│   │       ├── cmp.lua
-│   │       ├── ultisnips.lua
-│   │       ├── lualine.lua
-│   │       ├── bufferline.lua
-│   │       ├── telescope.lua
-│   │       ├── neo-tree.lua
-│   │       ├── typescript-tools.lua
-│   │       ├── treesitter.lua
-│   │       ├── colorizer.lua
-│   │       ├── emmet.lua
-│   │       ├── markdown.lua
-│   │       ├── wilder.lua
-│   │       └── config.lua
-│   └── plugins/
-│       └── init.lua         # Plugin specifications
-└── UltiSnips/               # UltiSnips snippet directory
-    ├── all.snippets
-    ├── python.snippets
-    ├── js.snippets
-    ├── c.snippets
-    ├── cpp.snippets
-    ├── go.snippets
-    ├── php.snippets
-    └── snippets.snippets
+init.lua                    Entry point
+lua/
+  config/
+    settings.lua            Editor settings (tabs, search, display)
+    keymaps.lua             All key bindings
+    autocmds.lua            Auto-commands
+    theme.lua               Colorscheme & highlights
+    private.lua             Your optional plugins (gitignored)
+    private_config.lua      Your personal settings (gitignored)
+    plugins/                Per-plugin configuration files
+  plugins/
+    init.lua                Plugin specifications for lazy.nvim
+UltiSnips/                  Custom snippet files
 ```
-
-## Built-in Snippets
-
-This configuration includes **all UltiSnips** from the original m-vim setup, making it completely self-contained.
-The snippet files live under `UltiSnips/` (UltiSnips format expects that directory name).
-
-### Snippet Files Included
-
-- **all.snippets** - Global snippets (date, time, templates, blog templates)
-- **python.snippets** - Python-specific snippets (imports, functions, classes, decorators)
-- **js.snippets** - JavaScript snippets (console.log, React, Bootstrap CDNs)
-- **c.snippets** - C programming snippets (loops, functions, includes)
-- **cpp.snippets** - C++ snippets with algorithms (KMP, LCS, Fibonacci, STL containers)
-- **go.snippets** - Go programming snippets (package, functions, error handling)
-- **php.snippets** - PHP snippets (loops, functions, utilities)
-
-### Using Snippets
-
-In insert mode:
-- `<Tab>` - Expand a snippet (e.g., type `date` then press Tab)
-- `<Tab>` - Jump to next placeholder
-- `<S-Tab>` - Jump to previous placeholder
-- `,us` - Edit snippet definitions (leader key)
 
 ## Key Bindings
 
-### General
+Leader key: **`,`** (comma)
+
+### Essentials
 
 | Key | Action |
 |-----|--------|
-| `,` | Leader key |
-| `;` | `:` (faster command mode) |
-| `kj` | `<Esc>` (in insert mode) |
-| `H` / `L` | Jump to line start / end (normal & visual) |
-| `j` / `k` | Move by display lines (wrapped) |
+| `;` | Enter command mode (instead of `:`) |
+| `kj` | Escape (insert mode) |
+| `H` / `L` | Line start / end |
 | `Y` | Yank to end of line |
 | `U` | Redo |
-| `'` / `` ` `` | Swapped (jump to mark) |
 
-### Search
-
-| Key | Action |
-|-----|--------|
-| `<Space>` | Start search (`/`) |
-| `/` | Very magic search (`/\v`) |
-| `n` / `N` | Next/previous match (centered) |
-| `*` / `#` | Swapped; search results centered |
-| `,/` | Clear search highlight |
-
-### Navigation
+### File Navigation
 
 | Key | Action |
 |-----|--------|
-| `<C-h/j/k/l>` | Navigate splits |
-| `[b` / `]b` | Previous/next buffer |
-| `<Left>` / `<Right>` | Previous/next buffer |
-| `<C-t>` | New tab |
+| `,n` | Toggle file tree (Neo-tree) |
+| `,p` | Find files (Telescope) |
+| `,f` | Live grep (Telescope) |
+| `,b` | Switch buffers (Telescope) |
+| `,s` | Search with Ag |
+| `\` | Search word under cursor (CtrlSF) |
+
+### Code
+
+| Key | Action |
+|-----|--------|
+| `,jd` | Go to definition |
+| `,gd` | Go to declaration |
+| `,ee` | Show diagnostics |
+| `<F5>` / `,run` | Quick run |
+| `<F3>` / `,af` | Autoformat |
+| `<F9>` | Toggle Tagbar |
+
+### Completion & Snippets
+
+| Key | Action |
+|-----|--------|
+| `<C-j>` / `<C-k>` | Navigate completion menu |
+| `<C-Space>` | Trigger completion |
+| `<CR>` | Confirm selection |
+| `<Tab>` | Expand snippet / jump forward |
+| `<S-Tab>` | Jump to previous placeholder |
+
+### Buffers & Windows
+
+| Key | Action |
+|-----|--------|
+| `[b` / `]b` | Previous / next buffer |
 | `,q` | Close buffer (smart) |
-| `<C-e>` / `<C-y>` | Fast scroll (2× speed) |
-
-### File Management
-
-| Key | Action |
-|-----|--------|
-| `,n` | Toggle neo-tree |
-| `,p` | Telescope file search |
-| `,f` | Telescope live grep |
-| `,b` | Telescope buffers |
-| `,s` | Ag (search in files) |
-| `\` | CtrlSF (search word under cursor) |
-
-### Editing
-
-| Key | Action |
-|-----|--------|
-| `,a` | EasyAlign (normal & visual) |
-| `,<space>` | Fix trailing whitespace |
-| `<F3>` | Autoformat |
-| `,af` | Autoformat |
-| `<` / `>` | Shift and reselect (visual) |
-| `,sa` | Select all |
-| `,z` | Toggle fold |
-| `,w` | Force save with sudo |
-| `w!!` | Write with sudo (command mode) |
+| `<C-h/j/k/l>` | Navigate splits |
+| `<C-t>` | New tab |
 
 ### EasyMotion
 
 | Key | Action |
 |-----|--------|
-| `,,h/j/k/l` | EasyMotion directional |
+| `,,h/j/k/l` | Directional motion |
 | `,,.` | Repeat last motion |
 
-### Multi-Cursor
+### Display Toggles
 
 | Key | Action |
 |-----|--------|
-| `<C-d>` | Select next occurrence |
-| `<C-p>` | Select previous occurrence |
-| `<C-j>` | Skip occurrence |
-| `<Esc>` | Quit multi-cursor |
-
-### Development
-
-| Key | Action |
-|-----|--------|
-| `,jd` | Go to definition (LSP) |
-| `,gd` | Go to declaration (LSP) |
-| `,ee` | Show diagnostics (LSP) |
-| `,t` / `,tt` | Open split terminal |
-| `<F9>` | Toggle Tagbar |
-| `,m` | Markdown preview |
-| `,run` / `<F5>` | Quick run code |
-| `,us` | Edit UltiSnips for current filetype |
-
-### Completion (nvim-cmp)
-
-| Key | Action |
-|-----|--------|
-| `<C-j>` / `<C-k>` | Next/previous completion item |
-| `<C-Space>` | Trigger completion |
-| `<CR>` | Confirm completion |
-
-### Neo-tree (inside panel)
-
-| Key | Action |
-|-----|--------|
-| `l` / `<CR>` | Open file/directory |
-| `h` | Collapse node |
-| `<Space>` | Toggle node |
+| `,bg` | Dark / light background |
+| `,ln` / `<F10>` | Line numbers |
+| `,rln` / `<F6>` | Relative numbers |
+| `,wr` / `<F4>` | Word wrap |
+| `<F8>` / `,il` | Indent guides |
+| `<F12>` / `,git` | GitGutter |
 
 ### Git
 
 | Key | Action |
 |-----|--------|
-| `,git` / `<F12>` | Toggle GitGutter |
-| `,g` | Quick git add, commit, pull & push |
+| `,g` | Quick add, commit, pull & push |
+| `<F12>` | Toggle GitGutter |
 
-### AI (Copilot)
+## Theme
 
-| Key | Action |
-|-----|--------|
-| `<F2>` | Toggle CopilotChat |
+Default: **Gruvbox** (dark, hard contrast). Change in `lua/config/theme.lua`.
 
-### Display
+Available: `gruvbox`, `solarized8`, `everforest`, `base16-*`, `ayu`.
 
-| Key | Action |
-|-----|--------|
-| `,bg` | Toggle background (dark/light) |
-| `,ln` / `<F10>` | Toggle line numbers |
-| `,rln` / `<F6>` | Toggle relative numbers |
-| `,wr` / `<F4>` | Toggle line wrap |
-| `,syn` / `<F7>` | Toggle syntax highlighting |
-| `,il` / `<F8>` | Toggle indent guides |
+## Customization
 
-### Command-line
+### Personal plugins — `private.lua`
 
-| Key | Action |
-|-----|--------|
-| `<C-a>` / `<C-e>` | Home / End |
-| `<C-j>` / `<C-k>` | Down / Up |
+This file is gitignored and never overwritten. It returns a table of plugin specs merged into lazy.nvim:
+
+```lua
+return {
+  { 'wakatime/vim-wakatime' },
+  { 'mbbill/undotree' },
+}
+```
+
+### Personal settings — `private_config.lua`
+
+Also gitignored. Add keymaps, settings, or autocommands here:
+
+```lua
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+```
 
 ## Plugin Management
 
-### Adding Plugins
-
-Edit `lua/plugins/init.lua` and add your plugin:
-
-```lua
-{ 'plugin-author/plugin-name' }
-```
-
-Or with configuration:
-
-```lua
-{
-  'plugin-author/plugin-name',
-  config = function()
-    require('config.plugins.my-plugin')
-  end,
-}
-```
-
-### Updating Plugins
-
-In Neovim:
 ```vim
-:Lazy sync
+:Lazy              " Open plugin manager UI
+:Lazy sync         " Install/update/clean plugins
 ```
 
-Or from command line:
-```bash
-nvim --headless "+Lazy! sync" +qa
-```
+Add plugins in `lua/plugins/init.lua`. If they need config, create a file in `lua/config/plugins/`.
 
-### Removing Plugins
+## Snippets
 
-1. Remove the entry from `lua/plugins/init.lua`
-2. Run `:Lazy sync` in Neovim
+Built-in snippets for: **all** (global), **Python**, **JavaScript**, **C**, **C++**, **Go**, **PHP**.
 
-## Important Setup Notes
-
-### LSP (nvim-lspconfig + nvim-cmp)
-
-Install language servers for the languages you use (e.g. `clangd`, `pyright`,
-`gopls`, `typescript-language-server`). Neovim will auto-start them when the
-executables are available. TypeScript is additionally configured via
-`pmizio/typescript-tools.nvim`. Diagnostics are configured to show only ERROR
-virtual text and keep the sign column empty by default.
-
-### Emmet
-
-HTML/CSS Emmet is powered by `olrtg/nvim-emmet` and requires the
-`emmet-language-server` binary on your PATH.
-
-### UltiSnips
-
-- Snippets are stored in `~/.config/nvim/UltiSnips`
-- Default snippets come from honza/vim-snippets plugin
-- Custom snippets go in the `UltiSnips/` directory
-- Edit snippets with `,us`
-
-### Snippets Directory
-
-Create your custom snippets in `~/.config/nvim/UltiSnips/`:
-
-```
-UltiSnips/
-├── python.snippets
-├── javascript.snippets
-└── all.snippets
-```
-
-## Theme Customization
-
-Edit `lua/config/theme.lua` to change:
-
-- **Colorscheme**: `vim.cmd('colorscheme gruvbox')`
-- **Background**: `opt.background = 'dark'`
-- **Font** (GUI): `opt.guifont = 'Font Name:h14'`
-
-Available colorschemes:
-- `gruvbox` (default)
-- `solarized8`, `solarized8_flat`
-- `everforest`
-- `base16-default`
-- `ayu`
-
-## Customization Tips
-
-### Change Leader Key
-
-Edit `init.lua`:
-```lua
-vim.g.mapleader = ';'  -- Change from ',' to ';'
-```
-
-### Private Customizations (private.lua)
-
-The `lua/config/private.lua` file is designed for your optional plugin list and
-will **never be overwritten** on updates. For personal keymaps/settings, create
-`lua/config/private_config.lua`.
-
-#### Add Optional Plugins
-
-Define optional plugins in `private.lua`:
-
-```lua
-local optional_plugins = {
-  -- Wakatime - Time tracking for coding
-  { 'wakatime/vim-wakatime' },
-  
-  -- Other optional plugins
-  { 'tpope/vim-eunuch' },           -- Unix shell commands
-  { 'numToStr/Comment.nvim' },      -- Better commenting
-  { 'mbbill/undotree' },            -- Visual undo history
-}
-
-return optional_plugins
-```
-
-#### Add Custom Keymaps
-
-In `private_config.lua`:
-```lua
-local map = vim.keymap.set
-local opts = { noremap = true, silent = true }
-
-map('n', '<leader>x', ':MyCommand<CR>', opts)
-```
-
-#### Add Custom Settings
-
-In `private_config.lua`:
-```lua
-local opt = vim.opt
-
-opt.tabstop = 4
-opt.shiftwidth = 4
-```
-
-#### Add Custom Autocommands
-
-In `private_config.lua`:
-```lua
-local augroup = vim.api.nvim_create_augroup
-local autocmd = vim.api.nvim_create_autocmd
-
-local my_group = augroup('MyCustomGroup', { clear = true })
-
-autocmd('BufWritePre', {
-  group = my_group,
-  pattern = '*.py',
-  command = 'Autoformat',
-})
-```
-
-**Note**: `private.lua` is your safe space for optional plugins - it's in
-`.gitignore` and will never be touched by updates. Use `private_config.lua` for
-personal settings, keymaps, and autocmds.
-
-### Disable Plugins
-
-In `lua/plugins/init.lua`, comment out or remove plugin entries:
-```lua
--- { 'wakatime/vim-wakatime' },
-```
-
-For optional plugins, use `private.lua` instead (it won't be overwritten on updates).
-For personal config, use `private_config.lua`.
-
-### Add Custom Keymaps
-
-Add to `lua/config/keymaps.lua`:
-```lua
-map('n', '<leader>x', ':MyCommand<CR>', opts)
-```
-
-### Add Custom Settings
-
-Add to `lua/config/settings.lua`:
-```lua
-opt.myoption = value
-```
+Edit snippets with `,us` or `:UltiSnipsEdit`.
 
 ## Troubleshooting
 
-### Plugins not loading
+| Problem | Fix |
+|---------|-----|
+| Plugins not loading | `:Lazy sync`, then `:checkhealth` |
+| LSP not working | `:LspInfo` — ensure the language server binary is installed |
+| Snippets not expanding | Check `:UltiSnipsEdit`, verify `<Tab>` isn't remapped |
+| Slow startup | `nvim --startuptime startup.log` to profile |
 
-1. Run `:Lazy` to see plugin status
-2. Check for errors with `:checkhealth`
-3. Try `:Lazy sync` to resync plugins
-
-### LSP not working
-
-1. Check `:LspInfo` to see attached servers
-2. Ensure the language server binary is installed and on your PATH
-3. Run `:checkhealth` for diagnostics
-
-### Snippets not expanding
-
-- Check `:UltiSnipsEdit` opens correctly
-- Verify `<Tab>` is not mapped elsewhere
-- Check `lua/config/plugins/ultisnips.lua` configuration
-
-### Performance issues
-
-1. Disable heavy plugins temporarily: `:Lazy`
-2. Check startup time: `nvim --startuptime startup.log`
-3. Profile with `:profile start profile.log` then `:q`
-
-## Updating This Config
-
-To get updates:
+## Updating
 
 ```bash
-cd ~/.config/nvim
-git pull
+cd ~/.config/nvim && git pull
 ```
 
-Then in Neovim:
-```vim
-:Lazy sync
-```
-
-## Uninstalling
-
-```bash
-rm -rf ~/.config/nvim
-# Optionally restore backup if available
-# mv ~/.config/nvim.backup.XXXXXXX_XXXXXX ~/.config/nvim
-```
+Then `:Lazy sync` inside Neovim.
 
 ## Credits
 
-- **Original**: D0n9X1n - m-vim configuration
-- **Ported to Neovim**: Modern Lua configuration using lazy.nvim
-- **Plugin Manager**: folke/lazy.nvim
+- Original Vim config: [D0n9X1n/m-vim](https://github.com/D0n9X1n/m-vim)
+- Plugin manager: [folke/lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ## License
 
-This configuration is provided as-is. Refer to individual plugin licenses.
-
-## Additional Resources
-
-- [Neovim Documentation](https://neovim.io/doc/)
-- [lazy.nvim](https://github.com/folke/lazy.nvim)
-- [Vim Cheat Sheet](https://vim.rtorr.com/)
-- [Neovim Tips](https://github.com/neovim/neovim/wiki/FAQ)
-
----
-
-**Enjoy your Neovim experience!** 🚀
+MIT

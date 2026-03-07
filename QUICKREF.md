@@ -1,565 +1,419 @@
-# Neovim Configuration - Quick Reference & Project Structure
+# QUICKREF.md — AI/Agent Reference for nvim-config
 
-**A modern Neovim configuration ported from m-vim to lazy.nvim with Lua**
-
----
-
-## 🧭 Agent Notes (Read First)
-
-- **Primary entry**: `init.lua`
-- **Plugin list**: `lua/plugins/init.lua`
-- **Plugin configs**: `lua/config/plugins/`
-- **Snippets**: `UltiSnips/` (UltiSnips format requires this directory name)
-- **LSP config**: `lua/config/plugins/lsp.lua` uses `vim.lsp.config` (not `lspconfig.setup`)
-- **Private plugins**: `lua/config/private.lua` (optional plugin list)
-- **Private configs**: `lua/config/private_config.lua` (keymaps/settings/autocmds)
+> **Purpose**: Machine-readable reference for AI agents working on this Neovim configuration.
+> For human-readable documentation, see `README.md`.
 
 ---
 
-## 📁 Project Structure
+## 1. Project Identity
 
-### Complete File Hierarchy
+- **What**: Lua-based Neovim configuration, ported from the original m-vim (Vim) config by D0n9X1n.
+- **Plugin manager**: lazy.nvim (auto-bootstrapped in `init.lua`).
+- **Minimum Neovim**: 0.10.0 (0.11+ recommended). Uses `vim.lsp.config` + `vim.lsp.enable` API.
+- **Target OS**: macOS (Homebrew assumed in `install.sh`), but config is cross-platform Lua.
+- **Repo**: `git@github.com:D0n9X1n/nvim-config.git` (branch: `main`).
+- **License**: MIT.
 
+---
+
+## 2. Deployment Model
+
+The repo lives at `~/Public/nvim-config/`. The installer (`install.sh`) creates **symlinks** from `~/.config/nvim/` back into this repo:
+
+| Symlinked target | Source in repo |
+|---|---|
+| `~/.config/nvim/init.lua` | `init.lua` |
+| `~/.config/nvim/lua` | `lua/` |
+| `~/.config/nvim/UltiSnips` | `UltiSnips/` |
+| `~/.config/nvim/install.sh` | `install.sh` |
+| `~/.config/nvim/README.md` | `README.md` |
+| `~/.config/nvim/QUICKREF.md` | `QUICKREF.md` |
+| `~/.config/nvim/LICENSE` | `LICENSE` |
+
+**Not symlinked** (local to `~/.config/nvim/`):
+- `lazy-lock.json` — lazy.nvim lockfile, machine-specific.
+
+**Private files** (gitignored, never overwrite):
+- `lua/config/private.lua` — optional plugin list (returns a Lua table merged into lazy spec).
+- `lua/config/private_config.lua` — personal keymaps/settings/autocmds (loaded via `pcall` at end of `init.lua`).
+
+Editing any file in `~/Public/nvim-config/` immediately affects the live Neovim config via symlinks.
+
+---
+
+## 3. File Map & Load Order
+
+### Boot sequence (`init.lua`)
+```
+1. Set leader key: ","
+2. require("config.settings")      -- vim options
+3. require("config.keymaps")       -- all key mappings
+4. require("config.autocmds")      -- autocommands
+5. require("config.plugins.config") -- vim.g settings for vimscript plugins
+6. Bootstrap lazy.nvim (clone if missing)
+7. lazy.setup({ import = "plugins" } + private.lua plugins)
+8. require("config.theme")         -- colorscheme + highlights
+9. pcall(require, "config.private_config") -- optional personal overrides
+```
+
+### Full file tree
 ```
 nvim-config/
-├── init.lua                    # Main entry point
-├── install.sh                  # macOS installer script
-├── .gitignore
-├── README.md                   # Complete documentation
-├── QUICKREF.md                 # This file - everything you need!
-│
+├── init.lua                          # Entry point, boot sequence above
+├── install.sh                        # macOS installer (symlinks + brew deps)
+├── README.md                         # Human documentation
+├── QUICKREF.md                       # This file (AI reference)
+├── LICENSE                           # MIT
+├── .gitignore                        # Ignores private.lua, lazy-lock.json, .DS_Store, etc.
 ├── lua/
 │   ├── config/
-│   │   ├── settings.lua        # General vim settings
-│   │   ├── keymaps.lua         # Keyboard mappings
-│   │   ├── autocmds.lua        # Autocommands
-│   │   ├── theme.lua           # Colorscheme & appearance
-│   │   ├── private.lua         # Optional plugins (never overwritten)
-│   │   ├── private_config.lua  # Personal keymaps/settings/autocmds
-│   │   └── plugins/
-│   │       ├── lsp.lua         # LSP config
-│   │       ├── cmp.lua         # Completion config (nvim-cmp)
-│   │       ├── ultisnips.lua   # UltiSnips config
-│   │       ├── lualine.lua     # Statusline config
-│   │       ├── bufferline.lua  # Bufferline config
-│   │       ├── telescope.lua   # Telescope config
-│   │       ├── neo-tree.lua    # File tree config
-│   │       ├── typescript-tools.lua # TypeScript tools config
-│   │       ├── treesitter.lua  # Treesitter config
-│   │       ├── colorizer.lua   # Colorizer config
-│   │       ├── emmet.lua       # Emmet config
-│   │       ├── markdown.lua    # Markdown config
-│   │       ├── wilder.lua      # Wilder config
-│   │       └── config.lua      # Other plugins config
-│   │
+│   │   ├── settings.lua              # vim.opt settings (tabs, search, display, encoding)
+│   │   ├── keymaps.lua               # All key bindings (vim.keymap.set)
+│   │   ├── autocmds.lua              # Autocommands (cursor restore, whitespace strip, filetype)
+│   │   ├── theme.lua                 # Gruvbox dark, diagnostic highlights, cursor shapes
+│   │   ├── private.lua               # [GITIGNORED] Optional plugins list
+│   │   └── plugins/                  # Individual plugin configurations
+│   │       ├── config.lua            # vim.g settings: NERDCommenter, CtrlSF, GitGutter, Tagbar,
+│   │       │                         #   EasyMotion, QuickScope, MultiCursors, IndentLine, Rainbow, Autoformat
+│   │       ├── lsp.lua               # LSP: diagnostics config, lspconfig for pyright/gopls/clangd/
+│   │       │                         #   bashls/jsonls/yamlls/graphql/solidity_ls/lua_ls
+│   │       │                         #   Uses setup_if_executable() — only enables if binary on PATH
+│   │       ├── cmp.lua               # nvim-cmp: sources=[nvim_lsp, ultisnips, buffer, path],
+│   │       │                         #   mappings: C-j/C-k (navigate), C-Space (complete), CR (confirm)
+│   │       ├── treesitter.lua        # Treesitter: auto_install=true, highlight+indent enabled
+│   │       ├── telescope.lua         # Telescope: ascending sort, top prompt, 90% width
+│   │       ├── neo-tree.lua          # Neo-tree: left panel 32-wide, show dotfiles, follow current file,
+│   │       │                         #   mappings: l/CR=open, h=close, space=toggle
+│   │       ├── lualine.lua           # Lualine: auto theme, powerline separators, branch+diff+diagnostics
+│   │       ├── bufferline.lua        # Bufferline: buffer mode, neo-tree offset, no close icons
+│   │       ├── typescript-tools.lua  # typescript-tools.nvim: no inlay hints
+│   │       ├── ultisnips.lua         # UltiSnips: Tab expand/forward, S-Tab backward
+│   │       ├── wilder.lua            # Wilder: popup menu for :/?  with devicons+scrollbar
+│   │       ├── colorizer.lua         # nvim-colorizer: all filetypes, no named colors
+│   │       ├── emmet.lua             # nvim-emmet: stub :EmmetInstall command for legacy autocmds
+│   │       └── markdown.lua          # markdown.nvim: default setup
 │   └── plugins/
-│       └── init.lua            # Plugin specifications (lazy.nvim)
-│
-└── UltiSnips/                  # UltiSnips snippets (format expects this name)
-    ├── all.snippets           # Global snippets (date, templates)
-    ├── python.snippets        # Python (imports, functions, classes)
-    ├── js.snippets            # JavaScript (console.log, React, CDN)
-    ├── c.snippets             # C programming (loops, headers)
-    ├── cpp.snippets           # C++ (algorithms, STL, ACM snippets)
-    ├── go.snippets            # Go (functions, error handling)
-    ├── php.snippets           # PHP (loops, utilities)
-    └── snippets.snippets      # UltiSnips meta-snippets
-```
-
-### What's Included
-
-#### 40+ Plugins Across 10 Categories
-
-- **Language Support**: TypeScript, JavaScript, GraphQL, C/C++, Python, Solidity
-- **Completion**: nvim-cmp, built-in LSP, UltiSnips, vim-snippets
-- **Navigation**: neo-tree, Telescope, Tagbar, vim-easymotion
-- **Version Control**: vim-fugitive, vim-gitgutter
-- **UI Enhancements**: lualine, bufferline, wilder, indentLine, rainbow
-- **Formatting**: vim-autoformat, EditorConfig
-- **Editing**: vim-surround, vim-repeat, nerdcommenter, EasyAlign
-- **Themes**: Gruvbox, Solarized, Everforest, Base16, Ayu
-- **Search**: Ag.vim, CtrlSF, vim-easygrep
-- **Utilities**: Markdown preview, QuickRun, Gundo, Wakatime (optional)
-
-#### Key Features
-
-✅ All original m-vim keybindings preserved  
-✅ Modern lazy.nvim plugin manager  
-✅ Lua configuration (clean, maintainable)  
-✅ 40+ organized plugins  
-✅ Full TypeScript/JavaScript support  
-✅ LSP completion with snippets  
-✅ Git integration  
-✅ File tree and fuzzy search  
-✅ Code formatting and linting  
-✅ Multiple color schemes  
-
----
-
-## 🚀 Quick Start
-
-```bash
-# 1. Run installer
-./install.sh
-
-# 2. Open Neovim
-nvim
-
-# 3. Plugins auto-install on first run
-# 4. Optional: install language servers you use (e.g. clangd, pyright)
+│       └── init.lua                  # Plugin specifications (lazy.nvim spec table)
+└── UltiSnips/                        # Custom snippet files (UltiSnips format)
+    ├── all.snippets                  # Global: date, time, templates, blog
+    ├── python.snippets               # Python: imports, functions, classes, decorators
+    ├── js.snippets                   # JavaScript: console.log, React, Bootstrap CDNs
+    ├── c.snippets                    # C: loops, functions, includes
+    ├── cpp.snippets                  # C++: algorithms (KMP, LCS, Fibonacci), STL containers
+    ├── go.snippets                   # Go: package, functions, error handling
+    ├── php.snippets                  # PHP: loops, functions, utilities
+    ├── snippets.snippets             # Meta snippets
+    └── README.md                     # Snippet documentation
 ```
 
 ---
 
-## ⌨️ Keyboard Shortcuts (Leader Key: `,`)
+## 4. Plugin Inventory
 
-### Files & Navigation
-- `,p` - Telescope find files
-- `,f` - Telescope live grep
-- `,n` - Toggle neo-tree
-- `,s` - Search in files with Ag
-- `,b` - Telescope buffers
-- `\` - CtrlSF (search with context)
+All plugins are specified in `lua/plugins/init.lua`. Config files are in `lua/config/plugins/`.
 
-### Editing
-- `,af` - Autoformat code
-- `,<space>` - Fix trailing whitespace
-- `,a` - EasyAlign (select text then press)
-- `,/` - Clear search highlight
-- `<F2>` / `<F3>` | Autoformat code
-
-### Navigation & Movement
-- `H` - Jump to line start
-- `L` - Jump to line end
-- `<C-h/j/k/l>` - Navigate between splits
-- `[b` / `]b` - Previous/next buffer
-- `<Left>` / `<Right>` - Previous/next buffer
-- `k` / `j` - Move cursor (wrapped lines treated as normal)
-- `;` - Faster command entry (mapped to `:`)
-
-### Development & LSP
-- `,jd` - Go to definition (LSP)
-- `,gd` - Go to declaration (LSP)
-- `,ee` - Show diagnostics (LSP)
-- `,t` / `,tt` - Open split terminal
-- `<F9>` - Toggle Tagbar
-- `,m` - Markdown preview
-- `,us` - Edit snippets with UltiSnips
-- `,run` / `<F5>` - Quick run code
-
-### Display & UI
-- `,bg` - Toggle background (dark/light)
-- `,ln` / `<F10>` - Toggle line numbers
-- `,rln` / `<F6>` - Toggle relative line numbers
-- `,wr` / `<F4>` - Toggle line wrap
-- `,syn` / `<F7>` - Toggle syntax highlighting
-- `,il` / `<F8>` - Toggle indent guides
-
-### Git Integration
-- `,git` / `<F12>` - Toggle GitGutter
-- `,g` - Git: add, commit, pull, push (automated)
-
-### Snippets & Completion (Insert Mode)
-- `<Tab>` - Expand snippet or complete
-- `<S-Tab>` - Jump backward in snippet
-- `<C-j>` - Jump forward or complete down
-- `<C-k>` - Jump backward or complete up
-- `kj` - Exit insert mode
-
-### Search & Find
-- `/` - Search forward (very magic regex)
-- `?` - Search backward
-- `n` / `N` - Next/previous result (centered)
-- `*` / `#` - Search for word under cursor
-- `g*` - Search (no word boundary)
-
-### Multiple Cursors
-- `<C-d>` - Select next occurrence
-- `<C-p>` - Select previous occurrence
-- `<C-j>` - Skip current occurrence
-- `<Esc>` - Exit multi-cursor mode
-
-### EasyMotion
-- `,,h` - EasyMotion backward
-- `,,j` - EasyMotion down
-- `,,k` - EasyMotion up
-- `,,l` - EasyMotion forward
-- `,,.` - Repeat last motion
-
-### Miscellaneous
-- `U` - Redo (mapped from `<C-r>`)
-- `'` / `` ` `` - Swap to make jumps easier
-- `Y` - Yank to end of line (like `D`, `C`)
-- `<leader>z` - Toggle fold
-- `<leader>w` - Force save with sudo
-- `<leader>sa` - Select all
-- `<leader>q` - Smart close buffer
-- `<C-t>` - New tab
-- `<F1>` - Escape (alternative)
-
-### Command-Line Mode
-- `<C-a>` - Go to start of line
-- `<C-e>` - Go to end of line
-- `<C-j>` - Navigate down
-- `<C-k>` - Navigate up
-- `w!!` - Write with sudo (`:w!!`)
+| Category | Plugin | Config file | Notes |
+|---|---|---|---|
+| **Syntax** | `nvim-treesitter/nvim-treesitter` | `treesitter.lua` | auto_install=true |
+| **Syntax** | `leafgarland/typescript-vim` | — | vim syntax |
+| **Syntax** | `pangloss/vim-javascript` | — | vim syntax |
+| **Syntax** | `jparise/vim-graphql` | — | vim syntax |
+| **Syntax** | `HerringtonDarkholme/yats.vim` | — | TS syntax |
+| **Syntax** | `Quramy/tsuquyomi` | — | TS tooling |
+| **Syntax** | `tomlion/vim-solidity` | — | Solidity syntax |
+| **Formatter** | `gpanders/editorconfig.nvim` | — | .editorconfig support |
+| **Formatter** | `Chiel92/vim-autoformat` | `config.lua` | `:Autoformat`, F3 |
+| **Colorscheme** | `MOSconfig/vim-solarized8` | `theme.lua` | GUI fallback |
+| **Colorscheme** | `MOSconfig/gruvbox` | `theme.lua` | Default (dark hard) |
+| **Colorscheme** | `chriskempson/base16-vim` | — | |
+| **Colorscheme** | `sainnhe/everforest` | — | |
+| **Colorscheme** | `ayu-theme/ayu-vim` | — | |
+| **HTML/CSS** | `NvChad/nvim-colorizer.lua` | `colorizer.lua` | All filetypes |
+| **HTML/CSS** | `olrtg/nvim-emmet` | `emmet.lua` | Needs emmet-language-server |
+| **Markdown** | `MeanderingProgrammer/markdown.nvim` | `markdown.lua` | ft=markdown |
+| **Markdown** | `iamcco/markdown-preview.nvim` | — | `:MarkdownPreviewToggle` |
+| **Tags/Nav** | `majutsushi/tagbar` | `config.lua` | F9, width=35 |
+| **Tags/Nav** | `bronson/vim-trailing-whitespace` | — | `:FixWhitespace` |
+| **Tags/Nav** | `Yggdroot/indentLine` | `config.lua` | F8, enabled by default |
+| **Search** | `dkprice/vim-easygrep` | — | |
+| **Search** | `rking/ag.vim` | — | `,s` |
+| **Search** | `dyng/ctrlsf.vim` | `config.lua` | `\` searches word under cursor |
+| **LSP** | `neovim/nvim-lspconfig` | `lsp.lua` | 10 servers, conditional enable |
+| **LSP** | `pmizio/typescript-tools.nvim` | `typescript-tools.lua` | Dedicated TS server |
+| **Completion** | `hrsh7th/nvim-cmp` | `cmp.lua` | LSP+snippets+buffer+path |
+| **Completion** | `hrsh7th/cmp-nvim-lsp` | — | nvim-cmp source |
+| **Completion** | `hrsh7th/cmp-buffer` | — | nvim-cmp source |
+| **Completion** | `hrsh7th/cmp-path` | — | nvim-cmp source |
+| **Completion** | `hrsh7th/cmp-cmdline` | — | nvim-cmp source |
+| **Completion** | `quangnguyen30192/cmp-nvim-ultisnips` | — | nvim-cmp source |
+| **Snippets** | `SirVer/ultisnips` | `ultisnips.lua` | Tab/S-Tab, custom UltiSnips/ dir |
+| **Snippets** | `honza/vim-snippets` | — | Default snippet collection |
+| **Editing** | `docunext/closetag.vim` | — | Auto-close HTML tags |
+| **Editing** | `Raimondi/delimitMate` | — | Auto-close brackets/quotes |
+| **Editing** | `junegunn/vim-easy-align` | — | `,a` in normal+visual |
+| **Editing** | `scrooloose/nerdcommenter` | `config.lua` | Space delimiters, C/C++ block |
+| **Editing** | `tpope/vim-repeat` | — | Dot-repeat for plugins |
+| **Editing** | `tpope/vim-surround` | — | Surround motions |
+| **Editing** | `luochen1990/rainbow` | `config.lua` | Rainbow parentheses, active=1 |
+| **Editing** | `unblevable/quick-scope` | `config.lua` | Highlight f/F/t/T targets |
+| **Editing** | `terryma/vim-multiple-cursors` | `config.lua` | C-d next, C-p prev, C-j skip |
+| **Editing** | `folke/todo-comments.nvim` | — | TODO/FIXME highlights |
+| **Movement** | `Lokaltog/vim-easymotion` | `config.lua` | `,,h/j/k/l/.` |
+| **Telescope** | `nvim-telescope/telescope.nvim` | `telescope.lua` | `,p` files, `,f` grep, `,b` buffers |
+| **File tree** | `nvim-neo-tree/neo-tree.nvim` | `neo-tree.lua` | `,n` toggle, left panel |
+| **UI** | `nvim-lualine/lualine.nvim` | `lualine.lua` | Statusline, auto theme |
+| **UI** | `akinsho/bufferline.nvim` | `bufferline.lua` | Buffer tabs |
+| **UI** | `gelguy/wilder.nvim` | `wilder.lua` | Cmdline popup |
+| **Git** | `tpope/vim-fugitive` | — | `:Git` commands |
+| **Git** | `airblade/vim-gitgutter` | `config.lua` | F12/`,git`, disabled by default |
+| **Misc** | `sjl/gundo.vim` | — | Undo tree |
+| **Misc** | `MikeCoder/quickrun.vim` | — | F5/`,run` |
 
 ---
 
-## 🎨 Colorschemes
+## 5. Key Settings (settings.lua)
 
-**Available colorschemes** - Switch with `:colorscheme name`
-
-- **gruvbox** (default) - Retro groove color scheme
-- **solarized8** - Precision colors for machines and people
-- **solarized8_flat** - Solarized without background contrast
-- **everforest** - Green-based color scheme
-- **base16-default-dark** - Base16 default dark theme
-- **ayu** - Modern theme (dark, light, mirage variants)
-
----
-
-## 📊 Statistics
-
-- **Lua Config Files**: 11
-- **Total Plugins**: 40+
-- **Snippet Files**: 8 (all included!)
-- **Configuration Lines**: 2000+
-- **Startup Time**: 50-100ms
-- **Total Size (before plugins)**: ~300KB
+| Setting | Value | Notes |
+|---|---|---|
+| Leader | `,` | Set in init.lua |
+| Tab width | 2 spaces | expandtab, smarttab |
+| Line numbers | absolute | relativenumber=false |
+| Search | hlsearch, ignorecase+smartcase | |
+| Scrolloff | 15 | |
+| Color column | 120 | |
+| Wrap | off | |
+| Mouse | `a` (all modes) | |
+| Encoding | UTF-8 | fileencodings includes cp936, gb18030, big5, euc-jp |
+| Folding | indent-based, foldlevel=99 | |
+| Backups/swap | disabled | |
+| Hidden buffers | enabled | |
+| termguicolors | enabled | |
 
 ---
 
-## 📍 Installation Locations
+## 6. Complete Keymap Reference (keymaps.lua + plugin configs)
 
-```
-~/.config/nvim/           # Main configuration
-~/.local/share/nvim/lazy/ # Plugins (auto-installed on first run)
-~/.config/nvim/UltiSnips/  # Custom snippets
-```
+### Core remaps
+| Mode | Key | Action |
+|---|---|---|
+| n | `j`/`k` | `gj`/`gk` (display lines) |
+| n | `gj`/`gk` | real `j`/`k` |
+| n | `H` | `^` (line start) |
+| n,v | `L` | `$` (line end) |
+| n | `Y` | `y$` |
+| n | `U` | `<C-r>` (redo) |
+| n | `'` ↔ `` ` `` | swapped |
+| n | `;` | `:` (command mode) |
+| i | `kj` | `<Esc>` |
+| n | `<Left>/<Right>/<Up>/<Down>` | disabled (arrow keys) |
 
----
+### Search
+| Mode | Key | Action |
+|---|---|---|
+| n | `<Space>` | `/` (start search) |
+| n,v | `/` | `/\v` (very magic) |
+| n | `n`/`N` | next/prev centered (`nzz`/`Nzz`) |
+| n | `*`/`#` | swapped, centered |
+| n | `g*` | `g*zz` |
+| n | `,/` | `:nohls` (clear highlight) |
 
-## ⚙️ Requirements & Setup
+### Window/buffer/tab
+| Mode | Key | Action |
+|---|---|---|
+| n | `<C-h/j/k/l>` | split navigation |
+| n | `[b`/`]b` | prev/next buffer |
+| n | `<Left>`/`<Right>` | prev/next buffer (overrides disabled arrows) |
+| n | `,q` | smart close buffer |
+| n | `<C-t>` | new tab |
+| i | `<C-t>` | new tab |
+| n | `,tt` | split terminal |
+| n | `<C-e>`/`<C-y>` | 2× scroll |
 
-### Required
+### Leader mappings
+| Key | Action | Source |
+|---|---|---|
+| `,n` | `:Neotree toggle` | keymaps.lua |
+| `,p` | `:Telescope find_files` | keymaps.lua |
+| `,f` | `:Telescope live_grep` | keymaps.lua |
+| `,b` | `:Telescope buffers` | keymaps.lua |
+| `,s` | `:Ag ` (prompt) | keymaps.lua |
+| `,jd` | `vim.lsp.buf.definition()` | keymaps.lua |
+| `,gd` | `vim.lsp.buf.declaration()` | keymaps.lua |
+| `,ee` | `vim.diagnostic.open_float()` | keymaps.lua |
+| `,t` | split terminal | keymaps.lua |
+| `,tt` | split terminal | keymaps.lua |
+| `,m` | `:MarkdownPreviewToggle` | keymaps.lua |
+| `,run` | `:QuickRun` | keymaps.lua |
+| `,us` | `:UltiSnipsEdit` | keymaps.lua |
+| `,a` | EasyAlign (n+v) | keymaps.lua |
+| `,<space>` | `:FixWhitespace` | keymaps.lua |
+| `,sa` | select all (`ggVG`) | keymaps.lua |
+| `,z` | toggle fold (`za`) | keymaps.lua |
+| `,w` | force save (sudo) | keymaps.lua |
+| `,g` | git add+commit+pull+push | keymaps.lua |
+| `,bg` | toggle dark/light background | keymaps.lua |
+| `,af` | `:Autoformat` | keymaps.lua |
+| `,wr` | toggle wrap | keymaps.lua |
+| `,rln` | toggle relative numbers | keymaps.lua |
+| `,syn` | toggle syntax | keymaps.lua |
+| `,il` | `:IndentLinesToggle` | keymaps.lua |
+| `,git` | `:GitGutterToggle` | keymaps.lua |
+| `,ln` | toggle line numbers | keymaps.lua |
+| `,,h/j/k/l` | EasyMotion directional | keymaps.lua |
+| `,,.` | EasyMotion repeat | keymaps.lua |
 
-- **Neovim** >= 0.10.0 (0.11+ recommended)
-- **Git** - For plugin management
-- **Python 3** - For Neovim's Python provider and some plugins (optional)
+### F-keys
+| Key | Action |
+|---|---|
+| `F1` | `<Esc>` (no help) |
+| `F2` | `:CopilotChatToggle` (if copilot plugin present) |
+| `F3` | `:Autoformat` |
+| `F4` | toggle wrap |
+| `F5` | `:QuickRun` |
+| `F6` | toggle relative numbers |
+| `F7` | toggle syntax |
+| `F8` | `:IndentLinesToggle` |
+| `F9` | `:TagbarToggle` |
+| `F10` | toggle line numbers |
+| `F12` | `:GitGutterToggle` |
 
-### Optional but Recommended
+### Completion (nvim-cmp, insert mode)
+| Key | Action |
+|---|---|
+| `<C-j>` | next item |
+| `<C-k>` | previous item |
+| `<C-Space>` | trigger completion |
+| `<CR>` | confirm selection |
 
-- **Clang/LLVM** - clangd language server for C/C++ (optional)
-- **ripgrep** - Fast search alternative to ag
-- **the_silver_searcher** - Fast grep alternative
-- **universal-ctags** - Better tag generation
-- **fzf** - Fuzzy finder
+### Snippets (UltiSnips, insert mode)
+| Key | Action |
+|---|---|
+| `<Tab>` | expand / jump forward |
+| `<S-Tab>` | jump backward |
 
-```bash
-# macOS optional tools
-brew install ripgrep
-brew install the_silver_searcher
-brew install universal-ctags
-brew install fzf
-```
+### Multi-cursor (config.lua)
+| Key | Action |
+|---|---|
+| `<C-d>` | select next occurrence |
+| `<C-p>` | select previous |
+| `<C-j>` | skip occurrence |
+| `<Esc>` | quit |
 
-### LSP Setup
+### Neo-tree panel
+| Key | Action |
+|---|---|
+| `l` / `<CR>` | open |
+| `h` | collapse |
+| `<Space>` | toggle node |
 
-```bash
-Install language servers for the languages you use (examples: `clangd`,
-`pyright`, `gopls`, `typescript-language-server`). Neovim will auto-start them
-when available on your PATH.
-```
+### Command-line
+| Key | Action |
+|---|---|
+| `<C-a>` | Home |
+| `<C-e>` | End |
+| `<C-j>` | Down |
+| `<C-k>` | Up |
+| `w!!` | write with sudo |
 
-Diagnostics are configured to show only ERROR virtual text and keep the sign
-column empty by default.
-
----
-
-## 🛠️ Customization
-
-### Using private.lua (Recommended!)
-
-The `lua/config/private.lua` file is **never overwritten** on updates and should
-return a list of optional plugins. For keymaps/settings/autocmds, use
-`lua/config/private_config.lua`.
-
-#### Add Optional Plugins
-
-```lua
-local optional_plugins = {
-  { 'wakatime/vim-wakatime' },
-  { 'tpope/vim-eunuch' },
-  { 'numToStr/Comment.nvim' },
-}
-
-return optional_plugins
-```
-
-#### Add Custom Keymaps (private_config.lua)
-
-```lua
-local map = vim.keymap.set
-local opts = { noremap = true, silent = true }
-
-map('n', '<leader>x', ':MyCommand<CR>', opts)
-```
-
-#### Add Custom Settings (private_config.lua)
-
-```lua
-local opt = vim.opt
-
-opt.tabstop = 4
-opt.shiftwidth = 4
-opt.softtabstop = 4
-```
-
-#### Add Custom Autocommands (private_config.lua)
-
-```lua
-local augroup = vim.api.nvim_create_augroup
-local autocmd = vim.api.nvim_create_autocmd
-
-local my_group = augroup('MyCustomGroup', { clear = true })
-
-autocmd('BufWritePre', {
-  group = my_group,
-  pattern = '*.py',
-  command = 'Autoformat',
-})
-```
-
-### Edit Configuration Files
-
-- **Keymaps**: `lua/config/keymaps.lua`
-- **Settings**: `lua/config/settings.lua`
-- **Plugins**: `lua/plugins/init.lua`
-- **Theme**: `lua/config/theme.lua`
-- **Optional plugins**: `lua/config/private.lua`
-- **Personal configs**: `lua/config/private_config.lua`
-
-### Change Leader Key
-
-Edit `init.lua`:
-```lua
-vim.g.mapleader = ';'  -- Change from ',' to ';'
-```
-
----
-
-## 📦 Plugin Management
-
-### In Neovim
-
-```vim
-:Lazy                  " Open plugin manager UI
-:Lazy sync             " Update all plugins
-:Lazy update           " Check for updates
-:Lazy install          " Install missing plugins
-:Lazy show <plugin>    " Show plugin details
-:Lazy clean            " Clean unused plugins
-```
-
-### From Command Line
-
-```bash
-nvim --headless "+Lazy! sync" +qa
-```
+### Visual mode
+| Key | Action |
+|---|---|
+| `<` / `>` | indent and reselect |
+| `H` / `L` | line start/end |
 
 ---
 
-## 📝 Built-in Snippets
+## 7. Autocommands (autocmds.lua)
 
-All UltiSnips from original m-vim are included!
-
-### Snippet Triggers
-
-In insert mode:
-- Type snippet name and press `<Tab>` to expand
-- `<Tab>` - Jump to next placeholder
-- `<S-Tab>` - Jump to previous placeholder
-- `,us` - Edit snippet definitions
-
-### Included Snippets
-
-| File | Contains |
-|------|----------|
-| **all.snippets** | Global: date, time, templates, blog templates |
-| **python.snippets** | Imports, functions, classes, decorators |
-| **js.snippets** | console.log, React, Bootstrap CDNs |
-| **c.snippets** | Loops, functions, includes, headers |
-| **cpp.snippets** | Algorithms (KMP, LCS, Fibonacci), STL containers, ACM snippets |
-| **go.snippets** | Package, functions, error handling |
-| **php.snippets** | Loops, functions, utilities |
-| **snippets.snippets** | UltiSnips meta-snippets |
+| Event | Pattern | Behavior |
+|---|---|---|
+| InsertLeave | * | Disable paste mode |
+| InsertLeave | * | Close preview window if no popup |
+| BufReadPost | * | Restore cursor to last edit position |
+| BufWinLeave | *.* | `mkview` (save folds/cursor) |
+| BufWinEnter | *.* | `loadview` (restore folds/cursor) |
+| FileType | cpp, c, javascript, java | `ts=2 sw=2 expandtab ai` |
+| FileType | typescript | `formatprg=prettier --parser typescript` |
+| BufRead/BufNewFile | *.md,*.mkd,*.markdown | Set filetype=markdown |
+| BufRead/BufNewFile | *.part | Set filetype=html |
+| FileType | html,css | `:EmmetInstall` |
+| BufNewFile/BufRead | *.py | Map `#` insertion fix |
+| BufWritePre | c,cpp,java,go,php,js,python,rust,etc. | Strip trailing whitespace |
+| Syntax | * | Highlight TODO/FIXME/CHANGED/DONE/XXX/BUG/HACK/NOTE/INFO/IDEA |
 
 ---
 
-## 🆘 Common Troubleshooting
+## 8. LSP Configuration (lsp.lua)
 
-### Plugins not loading
-```vim
-:Lazy              " Check plugin status
-:checkhealth       " System health check
-:Lazy sync         " Resync all plugins
-```
+**Pattern**: `setup_if_executable(server, binary, opts?)` — only enables a server if its binary is found on PATH.
 
-### LSP not working
-```vim
-:LspInfo                  " Show active language servers
-:checkhealth              " System health check
-```
+| Server | Binary | Extra config |
+|---|---|---|
+| pyright | `pyright-langserver` | — |
+| gopls | `gopls` | — |
+| clangd | `clangd` | — |
+| bashls | `bash-language-server` | — |
+| jsonls | `vscode-json-language-server` | — |
+| yamlls | `yaml-language-server` | — |
+| graphql | `graphql-lsp` | — |
+| solidity_ls | `solidity-language-server` | — |
+| lua_ls | `lua-language-server` | globals={"vim"}, checkThirdParty=false |
 
-### Snippets not expanding
-- Check `:UltiSnipsEdit` works
-- Verify `<Tab>` not mapped elsewhere
-- Check `lua/config/plugins/ultisnips.lua`
+**Diagnostics**: virtual text only for ERROR severity (icon prefix), no sign column signs, underline enabled, severity-sorted.
 
-### Performance issues
-```vim
-:Lazy                       " Disable heavy plugins
-nvim --startuptime log.txt  " Profile startup time
-:profile start log.txt      " Profile runtime
-```
+**Capabilities**: Enhanced with cmp-nvim-lsp if available.
+
+**TypeScript**: Handled separately by `typescript-tools.nvim` (not via lspconfig).
 
 ---
 
-## 📚 Useful Commands
+## 9. Theme (theme.lua)
 
-```vim
-:checkhealth                " System health & diagnostics
-:Lazy                       " Plugin manager UI
-:Lazy sync                  " Sync all plugins
-:LspInfo                   " Show active language servers
-:lua vim.diagnostic.open_float() " Show diagnostics
-:UltiSnipsEdit              " Edit snippet definitions
-:TagbarToggle               " Toggle code outline
-:NERDTreeToggle             " Toggle file tree
-:MarkdownPreview            " Preview markdown
-:Autoformat                 " Format current file
-:set number!                " Toggle line numbers
-:set wrap!                  " Toggle line wrapping
-:set relativenumber!        " Toggle relative numbers
-:colorscheme <name>         " Change colorscheme
-:help lua                   " Lua documentation
-:help nvim                  " Neovim manual
-```
+- **Colorscheme**: `gruvbox` (dark, hard contrast).
+- **GUI fallback**: `solarized8_flat` with `FiraCode Nerd Font:h14.5`.
+- **Custom highlights**: Red diagnostics for errors, orange (#ff8800) for warnings (both legacy `LspDiagnostics*` and new `Diagnostic*` groups).
+- **Sign column**: linked to `LineNr` background.
+- **Spell check**: underline-only (no background color).
+- **Terminal cursor**: blinking bar (insert), underline (replace), block (normal).
+- **Bracketed paste**: XTerm paste support enabled.
 
 ---
 
-## 🎯 Quick Tips
+## 10. Operational Notes for Agents
 
-1. **Record macros**: `qa...q` to record to `a`, then `@a` to replay
-2. **Sort lines**: `:%!sort` or visual select and `!sort`
-3. **Change colorscheme**: `:colorscheme everforest` (or gruvbox, solarized8, etc)
-4. **Edit snippets**: `,us` (with trailing space for function snippets)
-5. **Show help**: `:help index` for all commands
-6. **Navigate splits**: `<C-h/j/k/l>`
-7. **Search centered**: Use `/` to search - results auto-centered
-8. **EasyMotion**: `,,` + direction for quick jumps
-9. **Build/Run**: `,run` or `<F5>` for supported languages
-10. **Sudo save**: Type `:w!!` in command mode
+### Editing rules
+- **NEVER overwrite** `lua/config/private.lua` or `lua/config/private_config.lua` — these are user-personal and gitignored.
+- Edits to files in this repo take effect immediately in Neovim (symlinks).
+- The `lazy-lock.json` lives only in `~/.config/nvim/`, not in this repo.
+- Plugin specs go in `lua/plugins/init.lua`. Plugin configs go in `lua/config/plugins/<name>.lua`.
 
----
+### Adding a plugin
+1. Add spec entry to `lua/plugins/init.lua`.
+2. If config needed, create `lua/config/plugins/<name>.lua`.
+3. Reference it in the spec: `config = function() require('config.plugins.<name>') end`.
+4. Run `:Lazy sync` or `nvim --headless "+Lazy! sync" +qa`.
 
-## 🔑 Configuration Files Reference
+### Removing a plugin
+1. Delete spec entry from `lua/plugins/init.lua`.
+2. Delete config file from `lua/config/plugins/` if exists.
+3. Remove any keymaps referencing the plugin from `keymaps.lua` (or the plugin won't error — mappings just won't do anything).
+4. Run `:Lazy sync`.
 
-| File | Purpose |
-|------|---------|
-| `init.lua` | Main entry point, loads all modules |
-| `lua/config/settings.lua` | Vim options (tabs, encoding, colors, etc) |
-| `lua/config/keymaps.lua` | All keyboard shortcuts |
-| `lua/config/theme.lua` | Colorscheme & UI settings |
-| `lua/config/autocmds.lua` | Auto-commands for file types & events |
-| `lua/config/private.lua` | Optional plugin list (never overwritten!) |
-| `lua/config/private_config.lua` | Personal keymaps/settings/autocmds |
-| `lua/plugins/init.lua` | List of 40+ plugins |
-| `lua/config/plugins/*.lua` | Individual plugin configurations |
+### Dependencies
+- `wilder.nvim` requires `:UpdateRemotePlugins` after install.
+- `markdown-preview.nvim` builds via `bash install.sh` in plugin's `app/` dir.
+- Lualine + bufferline + neo-tree use Nerd Font icons — install a Nerd Font.
+- `nvim-emmet` requires `emmet-language-server` on PATH: `npm install -g @olrtg/emmet-language-server`.
+- External tools: `ripgrep`, `ag` (silver_searcher), `universal-ctags`, `fzf` (all via `brew install`).
 
----
+### Testing changes
+- Open Neovim and verify no errors on startup.
+- `:checkhealth` for diagnostics.
+- `:Lazy` to verify plugin status.
+- `:LspInfo` to check language servers.
 
-## 📖 Learning Resources
-
-- [Neovim Documentation](https://neovim.io/doc/)
-- [lazy.nvim Guide](https://github.com/folke/lazy.nvim)
-- [Vim Cheat Sheet](https://vim.rtorr.com/)
-- [Neovim Tips & FAQ](https://github.com/neovim/neovim/wiki/FAQ)
-
----
-
-## 🆘 Getting Help
-
-```vim
-:checkhealth           " System health check
-:Lazy                  " Plugin manager UI
-:help lua              " Lua documentation
-:help nvim             " Neovim manual
-:LspInfo               " LSP debugging
-:Lazy show <plugin>    " Show plugin info
-```
-
----
-
-## 📋 Default Settings Overview
-
-- **Tabs**: 2 spaces (expandtab, smarttab)
-- **Encoding**: UTF-8
-- **Line numbers**: Enabled by default
-- **Search**: Case-insensitive (with smartcase)
-- **Mouse**: Disabled
-- **Folding**: Indent-based with level 99
-- **Backup**: Disabled (no swap/backup files)
-- **Auto-read**: Files reloaded when changed externally
-- **Color column**: 120 characters
-- **Scroll offset**: 15 lines (keep cursor centered)
-
----
-
-## 🚀 Advanced Usage
-
-### Adding New Plugins
-
-1. Edit `lua/plugins/init.lua` or `lua/config/private.lua`
-2. Add plugin entry:
-   ```lua
-   { 'author/plugin-name' }
-   ```
-3. Save and restart Neovim
-4. Plugins auto-install via lazy.nvim
-
-### Creating Plugin Config
-
-1. Create `lua/config/plugins/myplugin.lua`
-2. In `init.lua`, add config line:
-   ```lua
-   {
-     'author/plugin-name',
-     config = function()
-       require('config.plugins.myplugin')
-     end,
-   }
-   ```
-
-### Custom Snippets
-
-1. Edit `~/.config/nvim/UltiSnips/python.snippets` (for example)
-2. Use `:UltiSnipsEdit` to open in editor
-3. Format: `snippet trigger "description" b ... endsnippet`
-
----
-
-## 📞 Support
-
-- Check `README.md` for detailed documentation
-- See `MIGRATION.md` if migrating from m-vim
-- Run `:checkhealth` for diagnostics
-- Use `:Lazy` for plugin manager help
-
----
-
-**Ported from m-vim to Modern Neovim**  
-**Configuration: D0n9X1n (original) → Neovim Lua port**
-
-Enjoy your Neovim! 🎉
+### Key conventions
+- All keymaps use `{ noremap = true, silent = true }` unless otherwise needed.
+- Vimscript plugin settings are in `config.lua` (vim.g assignments).
+- Lua plugin settings each get their own file in `lua/config/plugins/`.
+- pcall wrapping is used for optional plugin loading (safe if plugin missing).

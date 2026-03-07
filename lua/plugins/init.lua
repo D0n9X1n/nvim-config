@@ -160,20 +160,6 @@ return {
     end,
   },
 
-  -- AI / Copilot
-  { 'github/copilot.vim' },
-  {
-    'CopilotC-Nvim/CopilotChat.nvim',
-    dependencies = {
-      'github/copilot.vim',
-      'nvim-lua/plenary.nvim',
-    },
-    build = 'make tiktoken',
-    config = function()
-      require('config.plugins.copilot-chat')
-    end,
-  },
-
   -- Git Tools
   { 'tpope/vim-fugitive' },
   { 'airblade/vim-gitgutter' },
