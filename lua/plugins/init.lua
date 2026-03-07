@@ -28,6 +28,10 @@ return {
   { 'chriskempson/base16-vim' },
   { 'sainnhe/everforest' },
   { 'ayu-theme/ayu-vim' },
+  {
+    'svrana/neosolarized.nvim',
+    dependencies = { 'tjdevries/colorbuddy.nvim' },
+  },
 
   -- HTML / CSS / Markdown
   {

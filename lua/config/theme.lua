@@ -8,14 +8,22 @@ local g = vim.g
 -- Background
 opt.background = 'dark'
 
--- Gruvbox settings
-g.gruvbox_contrast_dark = 'hard'
+-- Gruvbox settings (kept for reference)
+g.gruvbox_contrast_dark = 'medium'
 g.gruvbox_improved_warnings = 1
 g.gruvbox_sign_column = 'bg0'
 
--- Set colorscheme (ensure gruvbox is installed via lazy.nvim)
+-- Everforest settings (kept for reference)
+g.everforest_background = 'medium'
+g.everforest_better_performance = 1
+
+-- Set colorscheme
 pcall(function()
-  vim.cmd('colorscheme gruvbox')
+  require('neosolarized').setup({
+    comment_italics = true,
+    background_set = true,
+  })
+  vim.cmd('colorscheme neosolarized')
 end)
 
 -- Match sign column background to line number column
