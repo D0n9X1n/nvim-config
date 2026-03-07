@@ -29,8 +29,7 @@ return {
   { 'sainnhe/everforest' },
   { 'ayu-theme/ayu-vim' },
   {
-    'svrana/neosolarized.nvim',
-    dependencies = { 'tjdevries/colorbuddy.nvim' },
+    'MOSconfig/NeoSolarized.nvim',
   },
 
   -- HTML / CSS / Markdown
