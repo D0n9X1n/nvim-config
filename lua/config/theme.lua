@@ -99,7 +99,7 @@ let &t_EI.="\e[1 q" "EI = NORMAL mode (ELSE)
 
 -- GUI-specific settings
 if vim.fn.has('gui_running') == 1 then
-  opt.guifont = 'FiraCode Nerd Font:h14.5'
+  opt.guifont = 'Rec Mono St.Helens:h14'
   pcall(function()
     vim.cmd('colorscheme solarized8_flat')
   end)
