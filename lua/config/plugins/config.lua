@@ -67,11 +67,6 @@ g.multi_cursor_prev_key = '<C-p>'
 g.multi_cursor_skip_key = '<C-j>'
 g.multi_cursor_quit_key = '<Esc>'
 
--- IndentLine
-g.markdown_syntax_conceal = 0
-g.vim_markdown_conceal_code_blocks = 0
-g.vim_markdown_conceal = 0
-g.indentLine_enabled = 1
 
 -- Rainbow Parentheses
 g.rainbow_active = 1

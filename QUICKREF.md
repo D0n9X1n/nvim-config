@@ -74,7 +74,7 @@ nvim-config/
 │   │   ├── private.lua               # [GITIGNORED] Optional plugins list
 │   │   └── plugins/                  # Individual plugin configurations
 │   │       ├── config.lua            # vim.g settings: NERDCommenter, CtrlSF, GitGutter, Tagbar,
-│   │       │                         #   EasyMotion, QuickScope, MultiCursors, IndentLine, Rainbow, Autoformat
+│   │       │                         #   EasyMotion, QuickScope, MultiCursors, Rainbow, Autoformat
 │   │       ├── lsp.lua               # LSP: diagnostics config, lspconfig for pyright/gopls/clangd/
 │   │       │                         #   bashls/jsonls/yamlls/graphql/solidity_ls/lua_ls
 │   │       │                         #   Uses setup_if_executable() — only enables if binary on PATH
@@ -134,7 +134,6 @@ All plugins are specified in `lua/plugins/init.lua`. Config files are in `lua/co
 | **Markdown** | `iamcco/markdown-preview.nvim` | — | `:MarkdownPreviewToggle` |
 | **Tags/Nav** | `majutsushi/tagbar` | `config.lua` | F9, width=35 |
 | **Tags/Nav** | `bronson/vim-trailing-whitespace` | — | `:FixWhitespace` |
-| **Tags/Nav** | `Yggdroot/indentLine` | `config.lua` | F8, enabled by default |
 | **Search** | `dkprice/vim-easygrep` | — | |
 | **Search** | `rking/ag.vim` | — | `,s` |
 | **Search** | `dyng/ctrlsf.vim` | `config.lua` | `\` searches word under cursor |
@@ -256,7 +255,6 @@ All plugins are specified in `lua/plugins/init.lua`. Config files are in `lua/co
 | `,wr` | toggle wrap | keymaps.lua |
 | `,rln` | toggle relative numbers | keymaps.lua |
 | `,syn` | toggle syntax | keymaps.lua |
-| `,il` | `:IndentLinesToggle` | keymaps.lua |
 | `,git` | `:GitGutterToggle` | keymaps.lua |
 | `,ln` | toggle line numbers | keymaps.lua |
 | `,,h/j/k/l` | EasyMotion directional | keymaps.lua |
@@ -272,7 +270,6 @@ All plugins are specified in `lua/plugins/init.lua`. Config files are in `lua/co
 | `F5` | `:QuickRun` |
 | `F6` | toggle relative numbers |
 | `F7` | toggle syntax |
-| `F8` | `:IndentLinesToggle` |
 | `F9` | `:TagbarToggle` |
 | `F10` | toggle line numbers |
 | `F12` | `:GitGutterToggle` |

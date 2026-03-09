@@ -1,0 +1,97 @@
+# Agent Instructions
+
+This is a **personal Neovim configuration** repo. It is symlinked into `~/.config/nvim/` via `install.sh`. Edits here immediately affect the user's Neovim.
+
+## Architecture
+
+```
+init.lua                    ← entry point; sets leader, loads core configs, bootstraps lazy.nvim
+lua/
+  plugins/init.lua          ← all plugin specs for lazy.nvim (~60 plugins)
+  config/
+    settings.lua            ← vim.opt / vim.g editor options
+    keymaps.lua             ← all key bindings (leader = comma)
+    autocmds.lua            ← autocommands (filetype, whitespace, folds)
+    theme.lua               ← colorscheme & custom highlight groups
+    private.lua             ← [GITIGNORED] user's personal plugin specs
+    private_config.lua      ← [GITIGNORED] user's personal overrides
+    plugins/                ← per-plugin configuration files
+      config.lua            ← vim.g settings for Vimscript plugins
+      lsp.lua               ← LSP servers (conditional on binary availability)
+      cmp.lua               ← nvim-cmp completion engine
+      treesitter.lua        ← syntax highlighting
+      telescope.lua         ← fuzzy finder
+      neo-tree.lua          ← file explorer
+      lualine.lua           ← statusline
+      bufferline.lua        ← buffer tabs
+      ultisnips.lua         ← snippet engine
+      wilder.lua            ← command-line popup
+      colorizer.lua         ← color highlights
+      emmet.lua             ← HTML/CSS expansion
+      markdown.lua          ← markdown rendering
+      typescript-tools.lua  ← TypeScript support
+UltiSnips/                  ← custom snippet files (all, python, js, c, cpp, go, php)
+install.sh                  ← macOS installer (Homebrew deps, symlinks, private.lua template)
+```
+
+## Load Order
+
+1. Leader key set to `,`
+2. `config.settings` → `config.keymaps` → `config.autocmds` → `config.plugins.config`
+3. lazy.nvim bootstrap + plugin loading (merges `config.private` if it exists)
+4. `config.theme` → `config.private_config` (pcall, safe if missing)
+
+## How to Add a Plugin
+
+1. Add the plugin spec to `lua/plugins/init.lua` (Lua table with repo string)
+2. If the plugin needs configuration, create `lua/config/plugins/<name>.lua`
+3. Reference the config in the spec: `config = function() require('config.plugins.<name>') end`
+4. If the plugin uses `vim.g` settings only, add them to `lua/config/plugins/config.lua` instead
+
+## How to Remove a Plugin
+
+1. Remove the spec from `lua/plugins/init.lua`
+2. Delete or clean up its config file in `lua/config/plugins/`
+3. Remove any related keymaps from `lua/config/keymaps.lua`
+4. Remove any related `vim.g` settings from `lua/config/plugins/config.lua`
+5. Remove any related autocommands from `lua/config/autocmds.lua`
+6. Update `QUICKREF.md` (plugin table, keymap tables, file tree comment)
+
+## How to Add a Keymap
+
+Add to `lua/config/keymaps.lua` using:
+```lua
+map('n', '<leader>xx', ':SomeCommand<CR>', opts)
+```
+Convention: all mappings use `{ noremap = true, silent = true }` stored in `opts`.
+
+## Coding Conventions
+
+- **Indentation**: 2 spaces (Lua standard)
+- **Comments**: `--` with `-- ====...====` section headers for major blocks
+- **Naming**: `snake_case` for variables and functions
+- **Plugin configs**: wrap setup calls in `pcall` when the plugin may not be installed
+- **LSP servers**: use the `setup_if_executable(server, binary)` pattern in `lsp.lua`
+- **No trailing whitespace**: autocmd strips it on save for most filetypes
+
+## Validation
+
+There are no automated tests. After making changes, verify with:
+
+```
+nvim --headless "+Lazy! sync" +qa        # plugins load without errors
+nvim --headless "+lua print('ok')" +qa   # config parses without errors
+```
+
+Neovim also provides built-in health checks:
+- `:checkhealth` — general diagnostics
+- `:Lazy` — plugin install/update status
+- `:LspInfo` — language server status
+
+## Do NOT
+
+- Edit `private.lua` or `private_config.lua` — they are gitignored and personal
+- Add `lazy-lock.json` to git — it is machine-specific
+- Remove the lazy.nvim bootstrap block in `init.lua`
+- Use `vim.cmd` for things that have a `vim.opt` / `vim.api` equivalent
+- Add comments to self-evident code; only comment non-obvious logic

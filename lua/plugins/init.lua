@@ -65,7 +65,7 @@ return {
   -- Tags / Navigation / Search
   { 'majutsushi/tagbar' },
   { 'bronson/vim-trailing-whitespace' },
-  { 'Yggdroot/indentLine' },
+
   { 'dkprice/vim-easygrep' },
   { 'rking/ag.vim' },
 
