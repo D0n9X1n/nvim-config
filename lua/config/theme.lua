@@ -23,16 +23,31 @@ pcall(function()
     style = 'dark',
     transparent = false,
     terminal_colors = true,
-    enable_italics = true,
+    enable_italics = false,
     styles = {
-      comments = { italic = true },
-      keywords = { italic = true },
+      comments = {},
+      keywords = {},
       functions = { bold = true },
       variables = {},
-      string = { italic = true },
+      string = {},
       underline = true,
       undercurl = true,
     },
+    on_highlights = function(hl, c)
+      -- Darken backgrounds for a deeper look
+      hl.Normal        = { fg = c.fg0, bg = '#001e27' }
+      hl.NormalFloat   = { fg = c.fg0, bg = '#00141c' }
+      hl.SignColumn     = { bg = '#001e27' }
+      hl.LineNr         = { fg = c.fg2, bg = '#001e27' }
+      hl.CursorLine     = { bg = '#002a35' }
+      hl.CursorLineNr   = { fg = c.yellow, bg = '#002a35' }
+      hl.ColorColumn    = { bg = '#002a35' }
+      hl.StatusLine     = { fg = c.fg0, bg = '#00141c' }
+      hl.StatusLineNC   = { fg = c.fg2, bg = '#00141c' }
+      hl.VertSplit      = { fg = '#003847', bg = '#001e27' }
+      hl.Pmenu          = { fg = c.fg0, bg = '#00141c' }
+      hl.PmenuSel       = { fg = c.base2, bg = '#003847' }
+    end,
   })
   vim.cmd('colorscheme NeoSolarized')
 end)
