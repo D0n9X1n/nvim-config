@@ -9,7 +9,7 @@ local g = vim.g
 opt.background = 'dark'
 
 -- Gruvbox settings (kept for reference)
-g.gruvbox_contrast_dark = 'medium'
+g.gruvbox_contrast_dark = 'hard'
 g.gruvbox_improved_warnings = 1
 g.gruvbox_sign_column = 'bg0'
 
@@ -19,37 +19,7 @@ g.everforest_better_performance = 1
 
 -- Set colorscheme
 pcall(function()
-  require('NeoSolarized').setup({
-    style = 'dark',
-    transparent = false,
-    terminal_colors = true,
-    enable_italics = false,
-    styles = {
-      comments = {},
-      keywords = {},
-      functions = { bold = true },
-      variables = {},
-      string = {},
-      underline = true,
-      undercurl = true,
-    },
-    on_highlights = function(hl, c)
-      -- Darken backgrounds for a deeper look
-      hl.Normal        = { fg = c.fg0, bg = '#001e27' }
-      hl.NormalFloat   = { fg = c.fg0, bg = '#00141c' }
-      hl.SignColumn     = { bg = '#001e27' }
-      hl.LineNr         = { fg = c.fg2, bg = '#001e27' }
-      hl.CursorLine     = { bg = '#002a35' }
-      hl.CursorLineNr   = { fg = c.yellow, bg = '#002a35' }
-      hl.ColorColumn    = { bg = '#002a35' }
-      hl.StatusLine     = { fg = c.fg0, bg = '#00141c' }
-      hl.StatusLineNC   = { fg = c.fg2, bg = '#00141c' }
-      hl.VertSplit      = { fg = '#003847', bg = '#001e27' }
-      hl.Pmenu          = { fg = c.fg0, bg = '#00141c' }
-      hl.PmenuSel       = { fg = c.base2, bg = '#003847' }
-    end,
-  })
-  vim.cmd('colorscheme NeoSolarized')
+  vim.cmd('colorscheme gruvbox')
 end)
 
 -- Match sign column background to line number column
