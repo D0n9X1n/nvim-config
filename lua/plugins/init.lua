@@ -107,6 +107,14 @@ return {
   { 'docunext/closetag.vim' },
   { 'Raimondi/delimitMate' },
 
+  -- Indent Guides
+  {
+    'nvimdev/indentmini.nvim',
+    config = function()
+      require('config.plugins.indentmini')
+    end,
+  },
+
   -- Editing Enhancements
   { 'junegunn/vim-easy-align' },
   { 'scrooloose/nerdcommenter' },
