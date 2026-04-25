@@ -314,19 +314,9 @@ Run → FAIL `not eager`.
 
 ---
 
-### Task 8: ultisnips (InsertEnter)
+### Task 8: ultisnips (InsertEnter) — **SKIPPED**
 
-**Failing test:**
-```bash
-assert_not_eager ultisnips
-assert_loads_on_insert ultisnips
-```
-
-> ⚠ Note: ultisnips is also listed as a dependency of nvim-cmp. Lazy.nvim resolves dependencies eagerly when the parent loads, so adding `event = 'InsertEnter'` to the **standalone** ultisnips entry is what gates direct activation; if cmp-on-InsertEnter pulls ultisnips in too, the `not eager` assertion still passes (no buffer = no InsertEnter).
-
-**Implementation:** on the standalone `SirVer/ultisnips` block add `event = 'InsertEnter',` after its `dependencies = { 'honza/vim-snippets' },`.
-
-**Verify:** smoke PASS. **Commit:** `perf(plugins): lazy-load ultisnips on InsertEnter` + trailer.
+Per user decision: leave ultisnips loading eagerly to avoid the cmp-dependency entanglement (Concern #2 in the architect report). No changes; smoke harness must NOT assert `not_eager` for ultisnips. Skip directly to Task 9.
 
 ---
 
@@ -499,24 +489,9 @@ assert_loads_on_cmd ctrlsf.vim CtrlSFToggle
 
 ---
 
-### Task 19: lualine + bufferline (VeryLazy)
+### Task 19: lualine + bufferline (VeryLazy) — **SKIPPED**
 
-**Failing test:**
-```bash
-assert_not_eager lualine.nvim
-assert_not_eager bufferline.nvim
-nvim_probe "lualine loads on VeryLazy" \
-  +"doautocmd User VeryLazy" +"lua $(loaded_lua lualine.nvim)"
-nvim_probe "bufferline loads on VeryLazy" \
-  +"doautocmd User VeryLazy" +"lua $(loaded_lua bufferline.nvim)"
-```
-> Caveat: lazy.nvim fires `User VeryLazy` itself shortly after startup; the `not_eager` probe runs before the autocmd schedule resolves under headless `--clean -u init.lua +qa`, so plugin is observably not yet loaded at the point of assertion. If this proves flaky, fall back to checking the spec metadata: `require('lazy.core.config').plugins['lualine.nvim'].lazy == true`.
-
-**Implementation:**
-- on `nvim-lualine/lualine.nvim` block add `event = 'VeryLazy',` after its `dependencies = { 'nvim-tree/nvim-web-devicons' },`
-- same change on `akinsho/bufferline.nvim` block
-
-**Verify/Commit:** `perf(plugins): lazy-load lualine + bufferline on VeryLazy` + trailer.
+Per user decision: leave lualine and bufferline loading eagerly to avoid the `VeryLazy` headless-probe flakiness (Concern #1 in the architect report). No changes; smoke harness must NOT assert `not_eager` for these two.
 
 ---
 
