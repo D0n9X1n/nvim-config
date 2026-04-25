@@ -49,7 +49,7 @@
 - Every code-modifying commit changes **only** `lua/plugins/init.lua` (and on Task 2/27, only `scripts/`).
 - Run `nvim --headless +'lua print("ok")' +qa` at the end of every code task to catch parse errors. Expected stderr: empty; stdout contains `ok`.
 
-> **BASELINE (recorded in Task 1):** `<median ms — filled in by Task 1 commit>`
+> **BASELINE (recorded in Task 1):** `ms = 86.772`
 > **AFTER TARGET:** ≤ 0.5 × baseline, verified in Task 27.
 
 ---
