@@ -128,17 +128,19 @@ return {
       { '<Plug>(EasyAlign)', mode = { 'n', 'x' } },
     },
   },
-  { 'scrooloose/nerdcommenter' },
+  { 'scrooloose/nerdcommenter', event = 'BufReadPost' },
   {
     'tpope/vim-repeat',
     dependencies = { 'tpope/vim-surround' },
+    event = 'BufReadPost',
   },
-  { 'luochen1990/rainbow' },
-  { 'unblevable/quick-scope' },
-  { 'terryma/vim-multiple-cursors' },
+  { 'luochen1990/rainbow', event = 'BufReadPost' },
+  { 'unblevable/quick-scope', event = 'BufReadPost' },
+  { 'terryma/vim-multiple-cursors', event = 'BufReadPost' },
   {
     'folke/todo-comments.nvim',
     dependencies = { 'nvim-lua/plenary.nvim' },
+    event = 'BufReadPost',
   },
 
   -- Movement

@@ -64,6 +64,15 @@ assert_not_eager indentmini.nvim
 nvim_probe "indentmini.nvim loads on BufReadPost" +"e README.md" +"lua $(loaded_lua indentmini.nvim)"
 assert_not_eager vim-easy-align
 nvim_probe "vim-easy-align registers :EasyAlign lazy cmd" +"lua if not vim.api.nvim_get_commands({})['EasyAlign'] then vim.cmd('cq') end"
+for p in nerdcommenter vim-repeat rainbow quick-scope vim-multiple-cursors todo-comments.nvim; do
+  assert_not_eager "$p"
+done
+nvim_probe "nerdcommenter loads on BufReadPost"     +"e README.md" +"lua $(loaded_lua nerdcommenter)"
+nvim_probe "vim-repeat loads on BufReadPost"        +"e README.md" +"lua $(loaded_lua vim-repeat)"
+nvim_probe "rainbow loads on BufReadPost"           +"e README.md" +"lua $(loaded_lua rainbow)"
+nvim_probe "quick-scope loads on BufReadPost"       +"e README.md" +"lua $(loaded_lua quick-scope)"
+nvim_probe "vim-multiple-cursors loads on BufReadPost" +"e README.md" +"lua $(loaded_lua vim-multiple-cursors)"
+nvim_probe "todo-comments loads on BufReadPost"     +"e README.md" +"lua $(loaded_lua todo-comments.nvim)"
 # SMOKE_ROWS_END
 
 echo
