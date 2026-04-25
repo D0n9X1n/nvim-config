@@ -88,6 +88,8 @@ assert_loads_on_cmd vim-easygrep            GrepBuffer
 assert_loads_on_cmd ag.vim                  "AgFromSearch"
 assert_not_eager ctrlsf.vim
 assert_loads_on_cmd ctrlsf.vim CtrlSFToggle
+assert_not_eager telescope.nvim
+assert_loads_on_cmd telescope.nvim "Telescope find_files"
 # SMOKE_ROWS_END
 
 echo
