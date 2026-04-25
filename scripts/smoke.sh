@@ -62,6 +62,8 @@ assert_not_eager closetag.vim
 assert_loads_on_ft closetag.vim html
 assert_not_eager indentmini.nvim
 nvim_probe "indentmini.nvim loads on BufReadPost" +"e README.md" +"lua $(loaded_lua indentmini.nvim)"
+assert_not_eager vim-easy-align
+nvim_probe "vim-easy-align registers :EasyAlign lazy cmd" +"lua if not vim.api.nvim_get_commands({})['EasyAlign'] then vim.cmd('cq') end"
 # SMOKE_ROWS_END
 
 echo

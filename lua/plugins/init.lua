@@ -121,7 +121,13 @@ return {
   },
 
   -- Editing Enhancements
-  { 'junegunn/vim-easy-align' },
+  {
+    'junegunn/vim-easy-align',
+    cmd = 'EasyAlign',
+    keys = {
+      { '<Plug>(EasyAlign)', mode = { 'n', 'x' } },
+    },
+  },
   { 'scrooloose/nerdcommenter' },
   {
     'tpope/vim-repeat',
