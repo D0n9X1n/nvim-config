@@ -79,6 +79,7 @@ return {
   {
     'pmizio/typescript-tools.nvim',
     dependencies = { 'nvim-lua/plenary.nvim' },
+    ft = { 'typescript', 'typescriptreact', 'javascript', 'javascriptreact' },
     config = function()
       require('config.plugins.typescript-tools')
     end,
