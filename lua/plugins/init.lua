@@ -95,6 +95,7 @@ return {
       'quangnguyen30192/cmp-nvim-ultisnips',
       'SirVer/ultisnips',
     },
+    event = { 'InsertEnter', 'CmdlineEnter' },
     config = function()
       require('config.plugins.cmp')
     end,

@@ -32,7 +32,7 @@ assert_not_eager()       { nvim_probe "$1 not eager"            +"lua $(not_load
 assert_loads_on_ft()     { nvim_probe "$1 loads on ft=$2"       +"e scratch.$2" +"lua $(loaded_lua "$1")"; }
 assert_loads_on_cmd()    { nvim_probe "$1 loads on :$2"         +"silent! $2"   +"lua $(loaded_lua "$1")"; }
 assert_loads_on_event()  { nvim_probe "$1 loads on $2"          +"doautocmd $2" +"lua $(loaded_lua "$1")"; }
-assert_loads_on_insert() { nvim_probe "$1 loads on InsertEnter" +"startinsert"  +"lua $(loaded_lua "$1")"; }
+assert_loads_on_insert() { nvim_probe "$1 loads on InsertEnter" +"doautocmd InsertEnter"  +"lua $(loaded_lua "$1")"; }
 
 echo "== smoke matrix =="
 # rows are appended by later tasks (insert above this marker)
@@ -52,6 +52,8 @@ assert_not_eager typescript-tools.nvim
 assert_loads_on_ft typescript-tools.nvim ts
 assert_not_eager nvim-lspconfig
 nvim_probe "nvim-lspconfig loads on BufReadPre" +"e README.md" +"lua $(loaded_lua nvim-lspconfig)"
+assert_not_eager nvim-cmp
+assert_loads_on_insert nvim-cmp
 # SMOKE_ROWS_END
 
 echo
