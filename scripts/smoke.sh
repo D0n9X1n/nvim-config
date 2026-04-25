@@ -58,6 +58,8 @@ assert_not_eager nvim-treesitter
 nvim_probe "nvim-treesitter loads on BufReadPost" +"e README.md" +"lua $(loaded_lua nvim-treesitter)"
 assert_not_eager delimitMate
 assert_loads_on_insert delimitMate
+assert_not_eager closetag.vim
+assert_loads_on_ft closetag.vim html
 # SMOKE_ROWS_END
 
 echo
