@@ -25,7 +25,7 @@ loaded_lua() {
 }
 not_loaded_lua() {
   local name="$1"
-  printf %s "local p=require('lazy.core.config').plugins['$name']; if p and p._.loaded then vim.cmd('cq') end"
+  printf %s "local p=require('lazy.core.config').plugins['$name']; if not p then vim.cmd('cq') end; if p._.loaded then vim.cmd('cq') end"
 }
 
 assert_not_eager()       { nvim_probe "$1 not eager"            +"lua $(not_loaded_lua "$1")"; }
@@ -116,6 +116,12 @@ assert_not_eager ayu-vim
 assert_not_eager NeoSolarized.nvim
 nvim_probe "gruvbox is eager (loaded at startup)" +"lua $(loaded_lua gruvbox)"
 nvim_probe "gruvbox has priority = 1000" +"lua local p=require('lazy.core.config').plugins['gruvbox']; if not (p and p.priority == 1000) then vim.cmd('cq') end"
+
+echo
+echo "== Intentionally eager (kept eager per user decision) =="
+nvim_probe "lualine.nvim is eager (kept eager per user decision)" +"lua $(loaded_lua lualine.nvim)"
+nvim_probe "bufferline.nvim is eager (kept eager per user decision)" +"lua $(loaded_lua bufferline.nvim)"
+nvim_probe "ultisnips is eager (kept eager per user decision)" +"lua $(loaded_lua ultisnips)"
 # SMOKE_ROWS_END
 
 echo
