@@ -11,12 +11,12 @@ return {
       require('config.plugins.treesitter')
     end,
   },
-  { 'leafgarland/typescript-vim' },
-  { 'pangloss/vim-javascript' },
-  { 'jparise/vim-graphql' },
-  { 'HerringtonDarkholme/yats.vim' },
-  { 'Quramy/tsuquyomi' },
-  { 'tomlion/vim-solidity' },
+  { 'leafgarland/typescript-vim',     ft = { 'typescript', 'typescriptreact' } },
+  { 'pangloss/vim-javascript',        ft = { 'javascript', 'javascriptreact' } },
+  { 'jparise/vim-graphql',            ft = { 'graphql' } },
+  { 'HerringtonDarkholme/yats.vim',   ft = { 'typescript', 'typescriptreact' } },
+  { 'Quramy/tsuquyomi',               ft = { 'typescript' } },
+  { 'tomlion/vim-solidity',           ft = { 'solidity' } },
 
   -- Formatter / Linting
   { 'gpanders/editorconfig.nvim' },

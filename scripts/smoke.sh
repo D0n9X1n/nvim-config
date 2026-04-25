@@ -36,6 +36,18 @@ assert_loads_on_insert() { nvim_probe "$1 loads on InsertEnter" +"startinsert"  
 
 echo "== smoke matrix =="
 # rows are appended by later tasks (insert above this marker)
+assert_not_eager typescript-vim
+assert_not_eager vim-javascript
+assert_not_eager vim-graphql
+assert_not_eager yats.vim
+assert_not_eager tsuquyomi
+assert_not_eager vim-solidity
+assert_loads_on_ft typescript-vim ts
+assert_loads_on_ft vim-javascript  js
+assert_loads_on_ft vim-graphql     graphql
+assert_loads_on_ft yats.vim        ts
+assert_loads_on_ft tsuquyomi       ts
+assert_loads_on_ft vim-solidity    sol
 # SMOKE_ROWS_END
 
 echo
