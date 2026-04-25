@@ -144,7 +144,7 @@ return {
   },
 
   -- Movement
-  { 'Lokaltog/vim-easymotion' },
+  { 'Lokaltog/vim-easymotion', event = 'BufReadPost' },
 
   -- File Search / Navigation
   { 'dyng/ctrlsf.vim' },

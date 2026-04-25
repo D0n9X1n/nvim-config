@@ -73,6 +73,8 @@ nvim_probe "rainbow loads on BufReadPost"           +"e README.md" +"lua $(loade
 nvim_probe "quick-scope loads on BufReadPost"       +"e README.md" +"lua $(loaded_lua quick-scope)"
 nvim_probe "vim-multiple-cursors loads on BufReadPost" +"e README.md" +"lua $(loaded_lua vim-multiple-cursors)"
 nvim_probe "todo-comments loads on BufReadPost"     +"e README.md" +"lua $(loaded_lua todo-comments.nvim)"
+assert_not_eager vim-easymotion
+nvim_probe "vim-easymotion loads on BufReadPost" +"e README.md" +"lua $(loaded_lua vim-easymotion)"
 # SMOKE_ROWS_END
 
 echo
