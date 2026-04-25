@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# scripts/smoke.sh — lazy-loading smoke matrix
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+PASS=0; FAIL=0
+ok()  { printf '  \033[32mPASS\033[0m %s\n' "$*"; PASS=$((PASS+1)); }
+bad() { printf '  \033[31mFAIL\033[0m %s\n' "$*"; FAIL=$((FAIL+1)); }
+
+# Run nvim headless with a Lua predicate. Predicate must call
+# vim.cmd('cq') to fail. Returns 0 on pass, non-zero on fail.
+nvim_probe() {
+  local desc="$1"; shift
+  if nvim --headless -u init.lua "$@" +qa 2>/dev/null; then
+    ok "$desc"
+  else
+    bad "$desc"
+  fi
+}
+
+# is the plugin's lazy.nvim record marked loaded?
+loaded_lua() {
+  local name="$1"
+  printf %s "local p=require('lazy.core.config').plugins['$name']; if not (p and p._.loaded) then vim.cmd('cq') end"
+}
+not_loaded_lua() {
+  local name="$1"
+  printf %s "local p=require('lazy.core.config').plugins['$name']; if p and p._.loaded then vim.cmd('cq') end"
+}
+
+assert_not_eager()       { nvim_probe "$1 not eager"            +"lua $(not_loaded_lua "$1")"; }
+assert_loads_on_ft()     { nvim_probe "$1 loads on ft=$2"       +"e scratch.$2" +"lua $(loaded_lua "$1")"; }
+assert_loads_on_cmd()    { nvim_probe "$1 loads on :$2"         +"silent! $2"   +"lua $(loaded_lua "$1")"; }
+assert_loads_on_event()  { nvim_probe "$1 loads on $2"          +"doautocmd $2" +"lua $(loaded_lua "$1")"; }
+assert_loads_on_insert() { nvim_probe "$1 loads on InsertEnter" +"startinsert"  +"lua $(loaded_lua "$1")"; }
+
+echo "== smoke matrix =="
+# rows are appended by later tasks (insert above this marker)
+# SMOKE_ROWS_END
+
+echo
+echo "Passed: $PASS  Failed: $FAIL"
+[ "$FAIL" -eq 0 ]
