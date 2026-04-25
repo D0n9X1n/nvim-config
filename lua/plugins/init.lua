@@ -72,6 +72,7 @@ return {
   -- Completion & Snippets
   {
     'neovim/nvim-lspconfig',
+    event = { 'BufReadPre', 'BufNewFile' },
     config = function()
       require('config.plugins.lsp')
     end,

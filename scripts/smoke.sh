@@ -50,6 +50,8 @@ assert_loads_on_ft tsuquyomi       ts
 assert_loads_on_ft vim-solidity    sol
 assert_not_eager typescript-tools.nvim
 assert_loads_on_ft typescript-tools.nvim ts
+assert_not_eager nvim-lspconfig
+nvim_probe "nvim-lspconfig loads on BufReadPre" +"e README.md" +"lua $(loaded_lua nvim-lspconfig)"
 # SMOKE_ROWS_END
 
 echo
