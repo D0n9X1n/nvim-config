@@ -118,7 +118,7 @@ return {
       require('config.plugins.ultisnips')
     end,
   },
-  { 'docunext/closetag.vim', ft = { 'html', 'xml', 'jsx', 'tsx' } },
+  { 'docunext/closetag.vim', ft = { 'html', 'xml', 'javascriptreact', 'typescriptreact' } },
   { 'Raimondi/delimitMate', event = 'InsertEnter' },
 
   -- Indent Guides

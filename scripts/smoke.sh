@@ -30,6 +30,7 @@ not_loaded_lua() {
 
 assert_not_eager()       { nvim_probe "$1 not eager"            +"lua $(not_loaded_lua "$1")"; }
 assert_loads_on_ft()     { nvim_probe "$1 loads on ft=$2"       +"silent! e scratch.$2" +"lua $(loaded_lua "$1")"; }
+assert_loads_on_ft_explicit() { nvim_probe "$1 loads on ft=$2" +"e scratch" +"set filetype=$2" +"lua $(loaded_lua "$1")"; }
 assert_loads_on_cmd()    { nvim_probe "$1 loads on :$2"         +"silent! $2"   +"lua $(loaded_lua "$1")"; }
 assert_loads_on_event()  { nvim_probe "$1 loads on $2"          +"doautocmd $2" +"lua $(loaded_lua "$1")"; }
 assert_loads_on_insert() { nvim_probe "$1 loads on InsertEnter" +"doautocmd InsertEnter"  +"lua $(loaded_lua "$1")"; }
@@ -60,6 +61,8 @@ assert_not_eager delimitMate
 assert_loads_on_insert delimitMate
 assert_not_eager closetag.vim
 assert_loads_on_ft closetag.vim html
+assert_loads_on_ft_explicit closetag.vim javascriptreact
+assert_loads_on_ft_explicit closetag.vim typescriptreact
 assert_not_eager indentmini.nvim
 nvim_probe "indentmini.nvim loads on BufReadPost" +"e README.md" +"lua $(loaded_lua indentmini.nvim)"
 assert_not_eager vim-easy-align
