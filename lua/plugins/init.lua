@@ -36,6 +36,7 @@ return {
   -- HTML / CSS / Markdown
   {
     'NvChad/nvim-colorizer.lua',
+    event = 'BufReadPost',
     config = function()
       require('config.plugins.colorizer')
     end,

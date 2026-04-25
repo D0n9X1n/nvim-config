@@ -75,6 +75,8 @@ nvim_probe "vim-multiple-cursors loads on BufReadPost" +"e README.md" +"lua $(lo
 nvim_probe "todo-comments loads on BufReadPost"     +"e README.md" +"lua $(loaded_lua todo-comments.nvim)"
 assert_not_eager vim-easymotion
 nvim_probe "vim-easymotion loads on BufReadPost" +"e README.md" +"lua $(loaded_lua vim-easymotion)"
+assert_not_eager nvim-colorizer.lua
+nvim_probe "colorizer loads on BufReadPost" +"e README.md" +"lua $(loaded_lua nvim-colorizer.lua)"
 # SMOKE_ROWS_END
 
 echo
