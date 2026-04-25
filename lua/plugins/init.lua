@@ -149,7 +149,11 @@ return {
   { 'Lokaltog/vim-easymotion', event = 'BufReadPost' },
 
   -- File Search / Navigation
-  { 'dyng/ctrlsf.vim' },
+  {
+    'dyng/ctrlsf.vim',
+    cmd = { 'CtrlSF', 'CtrlSFOpen', 'CtrlSFToggle' },
+    keys = { { '\\', '<Plug>CtrlSFCwordPath<CR>', mode = 'n' } },
+  },
 
   -- UI / Buffers
   {

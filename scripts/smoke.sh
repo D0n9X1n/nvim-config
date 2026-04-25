@@ -86,6 +86,8 @@ assert_loads_on_cmd tagbar TagbarOpen
 assert_loads_on_cmd vim-trailing-whitespace FixWhitespace
 assert_loads_on_cmd vim-easygrep            GrepBuffer
 assert_loads_on_cmd ag.vim                  "AgFromSearch"
+assert_not_eager ctrlsf.vim
+assert_loads_on_cmd ctrlsf.vim CtrlSFToggle
 # SMOKE_ROWS_END
 
 echo
