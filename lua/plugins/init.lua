@@ -109,7 +109,7 @@ return {
     end,
   },
   { 'docunext/closetag.vim' },
-  { 'Raimondi/delimitMate' },
+  { 'Raimondi/delimitMate', event = 'InsertEnter' },
 
   -- Indent Guides
   {
