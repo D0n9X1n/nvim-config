@@ -60,6 +60,8 @@ assert_not_eager delimitMate
 assert_loads_on_insert delimitMate
 assert_not_eager closetag.vim
 assert_loads_on_ft closetag.vim html
+assert_not_eager indentmini.nvim
+nvim_probe "indentmini.nvim loads on BufReadPost" +"e README.md" +"lua $(loaded_lua indentmini.nvim)"
 # SMOKE_ROWS_END
 
 echo

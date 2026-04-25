@@ -114,6 +114,7 @@ return {
   -- Indent Guides
   {
     'nvimdev/indentmini.nvim',
+    event = 'BufReadPost',
     config = function()
       require('config.plugins.indentmini')
     end,
