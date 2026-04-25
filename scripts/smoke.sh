@@ -94,6 +94,8 @@ assert_not_eager neo-tree.nvim
 assert_loads_on_cmd neo-tree.nvim "Neotree close"
 assert_not_eager vim-fugitive
 assert_loads_on_cmd vim-fugitive "Git status"
+assert_not_eager vim-gitgutter
+nvim_probe "gitgutter loads on BufReadPost" +"e README.md" +"lua $(loaded_lua vim-gitgutter)"
 # SMOKE_ROWS_END
 
 echo

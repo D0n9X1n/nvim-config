@@ -206,7 +206,7 @@ return {
     cmd = { 'Git', 'G', 'Gdiffsplit', 'Gread', 'Gwrite', 'Ggrep',
             'GMove', 'GDelete', 'GBrowse', 'GRemove', 'Gblame' },
   },
-  { 'airblade/vim-gitgutter' },
+  { 'airblade/vim-gitgutter', event = 'BufReadPost' },
 
   -- Misc Tools
   { 'sjl/gundo.vim' },
