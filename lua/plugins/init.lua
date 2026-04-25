@@ -66,11 +66,11 @@ return {
   },
 
   -- Tags / Navigation / Search
-  { 'majutsushi/tagbar' },
-  { 'bronson/vim-trailing-whitespace' },
+  { 'majutsushi/tagbar', cmd = { 'TagbarToggle', 'TagbarOpen', 'Tagbar' } },
+  { 'bronson/vim-trailing-whitespace', cmd = 'FixWhitespace' },
 
-  { 'dkprice/vim-easygrep' },
-  { 'rking/ag.vim' },
+  { 'dkprice/vim-easygrep', cmd = { 'Grep', 'GrepRoot', 'GrepBuffer', 'Replace', 'ReplaceUndo' } },
+  { 'rking/ag.vim', cmd = { 'Ag', 'AgAdd', 'AgFromSearch' } },
 
   -- Completion & Snippets
   {

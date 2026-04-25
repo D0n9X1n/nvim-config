@@ -79,6 +79,13 @@ assert_not_eager nvim-colorizer.lua
 nvim_probe "colorizer loads on BufReadPost" +"e README.md" +"lua $(loaded_lua nvim-colorizer.lua)"
 assert_not_eager nvim-emmet
 assert_loads_on_ft nvim-emmet html
+for p in tagbar vim-trailing-whitespace vim-easygrep ag.vim; do
+  assert_not_eager "$p"
+done
+assert_loads_on_cmd tagbar TagbarOpen
+assert_loads_on_cmd vim-trailing-whitespace FixWhitespace
+assert_loads_on_cmd vim-easygrep            GrepBuffer
+assert_loads_on_cmd ag.vim                  "AgFromSearch"
 # SMOKE_ROWS_END
 
 echo
