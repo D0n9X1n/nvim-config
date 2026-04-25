@@ -92,6 +92,8 @@ assert_not_eager telescope.nvim
 assert_loads_on_cmd telescope.nvim "Telescope find_files"
 assert_not_eager neo-tree.nvim
 assert_loads_on_cmd neo-tree.nvim "Neotree close"
+assert_not_eager vim-fugitive
+assert_loads_on_cmd vim-fugitive "Git status"
 # SMOKE_ROWS_END
 
 echo

@@ -201,7 +201,11 @@ return {
   },
 
   -- Git Tools
-  { 'tpope/vim-fugitive' },
+  {
+    'tpope/vim-fugitive',
+    cmd = { 'Git', 'G', 'Gdiffsplit', 'Gread', 'Gwrite', 'Ggrep',
+            'GMove', 'GDelete', 'GBrowse', 'GRemove', 'Gblame' },
+  },
   { 'airblade/vim-gitgutter' },
 
   -- Misc Tools
