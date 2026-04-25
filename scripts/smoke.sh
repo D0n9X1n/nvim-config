@@ -106,6 +106,13 @@ assert_not_eager wilder.nvim
 nvim_probe "wilder loads on CmdlineEnter" +"doautocmd CmdlineEnter" +"lua $(loaded_lua wilder.nvim)"
 assert_not_eager editorconfig.nvim
 nvim_probe "editorconfig loads on BufReadPre" +"e README.md" +"lua $(loaded_lua editorconfig.nvim)"
+assert_not_eager vim-solarized8
+assert_not_eager base16-vim
+assert_not_eager everforest
+assert_not_eager ayu-vim
+assert_not_eager NeoSolarized.nvim
+nvim_probe "gruvbox is eager (loaded at startup)" +"lua $(loaded_lua gruvbox)"
+nvim_probe "gruvbox has priority = 1000" +"lua local p=require('lazy.core.config').plugins['gruvbox']; if not (p and p.priority == 1000) then vim.cmd('cq') end"
 # SMOKE_ROWS_END
 
 echo
