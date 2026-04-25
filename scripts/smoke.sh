@@ -96,6 +96,12 @@ assert_not_eager vim-fugitive
 assert_loads_on_cmd vim-fugitive "Git status"
 assert_not_eager vim-gitgutter
 nvim_probe "gitgutter loads on BufReadPost" +"e README.md" +"lua $(loaded_lua vim-gitgutter)"
+assert_not_eager gundo.vim
+assert_not_eager quickrun.vim
+assert_not_eager vim-autoformat
+assert_loads_on_cmd gundo.vim      GundoToggle
+assert_loads_on_cmd quickrun.vim   QuickRun
+assert_loads_on_cmd vim-autoformat Autoformat
 # SMOKE_ROWS_END
 
 echo

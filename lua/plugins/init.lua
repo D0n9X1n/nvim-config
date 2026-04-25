@@ -21,7 +21,14 @@ return {
 
   -- Formatter / Linting
   { 'gpanders/editorconfig.nvim' },
-  { 'Chiel92/vim-autoformat' },
+  {
+    'Chiel92/vim-autoformat',
+    cmd = 'Autoformat',
+    keys = {
+      { '<F3>',       ':Autoformat<CR>', desc = 'Autoformat', silent = true },
+      { '<leader>af', ':Autoformat<CR>', desc = 'Autoformat', silent = true },
+    },
+  },
 
   -- Colorschemes
   { 'MOSconfig/vim-solarized8' },
@@ -209,8 +216,8 @@ return {
   { 'airblade/vim-gitgutter', event = 'BufReadPost' },
 
   -- Misc Tools
-  { 'sjl/gundo.vim' },
-  { 'MikeCoder/quickrun.vim' },
+  { 'sjl/gundo.vim', cmd = 'GundoToggle' },
+  { 'MikeCoder/quickrun.vim', cmd = 'QuickRun' },
   {
     'gelguy/wilder.nvim',
     build = ':UpdateRemotePlugins',
