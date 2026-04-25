@@ -29,7 +29,7 @@ not_loaded_lua() {
 }
 
 assert_not_eager()       { nvim_probe "$1 not eager"            +"lua $(not_loaded_lua "$1")"; }
-assert_loads_on_ft()     { nvim_probe "$1 loads on ft=$2"       +"e scratch.$2" +"lua $(loaded_lua "$1")"; }
+assert_loads_on_ft()     { nvim_probe "$1 loads on ft=$2"       +"silent! e scratch.$2" +"lua $(loaded_lua "$1")"; }
 assert_loads_on_cmd()    { nvim_probe "$1 loads on :$2"         +"silent! $2"   +"lua $(loaded_lua "$1")"; }
 assert_loads_on_event()  { nvim_probe "$1 loads on $2"          +"doautocmd $2" +"lua $(loaded_lua "$1")"; }
 assert_loads_on_insert() { nvim_probe "$1 loads on InsertEnter" +"doautocmd InsertEnter"  +"lua $(loaded_lua "$1")"; }
@@ -77,6 +77,8 @@ assert_not_eager vim-easymotion
 nvim_probe "vim-easymotion loads on BufReadPost" +"e README.md" +"lua $(loaded_lua vim-easymotion)"
 assert_not_eager nvim-colorizer.lua
 nvim_probe "colorizer loads on BufReadPost" +"e README.md" +"lua $(loaded_lua nvim-colorizer.lua)"
+assert_not_eager nvim-emmet
+assert_loads_on_ft nvim-emmet html
 # SMOKE_ROWS_END
 
 echo

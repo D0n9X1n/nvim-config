@@ -43,6 +43,7 @@ return {
   },
   {
     'olrtg/nvim-emmet',
+    ft = { 'html', 'css', 'jsx', 'tsx', 'javascriptreact', 'typescriptreact' },
     config = function()
       require('config.plugins.emmet')
     end,
