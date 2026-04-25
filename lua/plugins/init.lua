@@ -221,6 +221,7 @@ return {
   {
     'gelguy/wilder.nvim',
     build = ':UpdateRemotePlugins',
+    event = 'CmdlineEnter',
     config = function()
       require('config.plugins.wilder')
     end,

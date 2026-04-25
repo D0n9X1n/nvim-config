@@ -102,6 +102,8 @@ assert_not_eager vim-autoformat
 assert_loads_on_cmd gundo.vim      GundoToggle
 assert_loads_on_cmd quickrun.vim   QuickRun
 assert_loads_on_cmd vim-autoformat Autoformat
+assert_not_eager wilder.nvim
+nvim_probe "wilder loads on CmdlineEnter" +"doautocmd CmdlineEnter" +"lua $(loaded_lua wilder.nvim)"
 # SMOKE_ROWS_END
 
 echo
