@@ -54,6 +54,8 @@ assert_not_eager nvim-lspconfig
 nvim_probe "nvim-lspconfig loads on BufReadPre" +"e README.md" +"lua $(loaded_lua nvim-lspconfig)"
 assert_not_eager nvim-cmp
 assert_loads_on_insert nvim-cmp
+assert_not_eager nvim-treesitter
+nvim_probe "nvim-treesitter loads on BufReadPost" +"e README.md" +"lua $(loaded_lua nvim-treesitter)"
 # SMOKE_ROWS_END
 
 echo
