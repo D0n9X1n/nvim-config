@@ -191,6 +191,10 @@ return {
       'nvim-tree/nvim-web-devicons',
       'MunifTanjim/nui.nvim',
     },
+    cmd = 'Neotree',
+    keys = {
+      { '<leader>n', ':Neotree toggle<CR>', desc = 'Neo-tree toggle', silent = true },
+    },
     config = function()
       require('config.plugins.neo-tree')
     end,

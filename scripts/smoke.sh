@@ -90,6 +90,8 @@ assert_not_eager ctrlsf.vim
 assert_loads_on_cmd ctrlsf.vim CtrlSFToggle
 assert_not_eager telescope.nvim
 assert_loads_on_cmd telescope.nvim "Telescope find_files"
+assert_not_eager neo-tree.nvim
+assert_loads_on_cmd neo-tree.nvim "Neotree close"
 # SMOKE_ROWS_END
 
 echo
