@@ -20,7 +20,7 @@ return {
   { 'tomlion/vim-solidity',           ft = { 'solidity' } },
 
   -- Formatter / Linting
-  { 'gpanders/editorconfig.nvim' },
+  { 'gpanders/editorconfig.nvim', event = { 'BufReadPre', 'BufNewFile' } },
   {
     'Chiel92/vim-autoformat',
     cmd = 'Autoformat',
