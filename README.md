@@ -139,7 +139,7 @@ Leader key: **`,`** (comma)
 | `,ln` / `<F10>` | Line numbers |
 | `,rln` / `<F6>` | Relative numbers |
 | `,wr` / `<F4>` | Word wrap |
-| `<F8>` / `,il` | Indent guides |
+| `<F8>` / `,il` | Indent guides (off by default; toggle to enable) |
 | `<F12>` / `,git` | GitGutter |
 
 ### Git

@@ -67,16 +67,7 @@ map('n', '<leader>rln', function() number_toggle() end, { silent = true })
 map('n', '<leader>syn', ':exec exists("syntax_on") ? "syn off" : "syn on"<CR>', opts)
 
 map('n', '<leader>git', ':GitGutterToggle<CR>', opts)
-map('n', '<leader>il', function()
-  if vim.g.indentmini_enabled == false then
-    vim.g.indentmini_enabled = true
-    require('indentmini').setup({ char = '╎' })
-  else
-    vim.g.indentmini_enabled = false
-    vim.cmd('highlight clear IndentLine')
-    vim.cmd('highlight clear IndentLineCurrent')
-  end
-end, opts)
+map('n', '<leader>il', function() require('config.plugins.indentmini').toggle() end, opts)
 map('n', '<F8>', '<leader>il', { remap = true, silent = true })
 map('n', '<leader>ln', ':set number! number?<CR>', opts)
 

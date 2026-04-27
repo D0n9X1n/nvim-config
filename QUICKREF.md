@@ -132,6 +132,7 @@ All plugins are specified in `lua/plugins/init.lua`. Config files are in `lua/co
 | **HTML/CSS** | `olrtg/nvim-emmet` | `emmet.lua` | Needs emmet-language-server |
 | **Markdown** | `MeanderingProgrammer/markdown.nvim` | `markdown.lua` | ft=markdown |
 | **Markdown** | `iamcco/markdown-preview.nvim` | — | `:MarkdownPreviewToggle` |
+| **Indent Guides** | `nvimdev/indentmini.nvim` | `indentmini.lua` | **Off by default** (perf on large files); toggle with `<F8>` / `,il` |
 | **Tags/Nav** | `majutsushi/tagbar` | `config.lua` | F9, width=35 |
 | **Tags/Nav** | `bronson/vim-trailing-whitespace` | — | `:FixWhitespace` |
 | **Search** | `dkprice/vim-easygrep` | — | |
@@ -256,6 +257,7 @@ All plugins are specified in `lua/plugins/init.lua`. Config files are in `lua/co
 | `,rln` | toggle relative numbers | keymaps.lua |
 | `,syn` | toggle syntax | keymaps.lua |
 | `,git` | `:GitGutterToggle` | keymaps.lua |
+| `,il` | toggle indent guides (indentmini, off by default) | keymaps.lua |
 | `,ln` | toggle line numbers | keymaps.lua |
 | `,,h/j/k/l` | EasyMotion directional | keymaps.lua |
 | `,,.` | EasyMotion repeat | keymaps.lua |
@@ -270,6 +272,7 @@ All plugins are specified in `lua/plugins/init.lua`. Config files are in `lua/co
 | `F5` | `:QuickRun` |
 | `F6` | toggle relative numbers |
 | `F7` | toggle syntax |
+| `F8` | toggle indent guides (indentmini, off by default) |
 | `F9` | `:TagbarToggle` |
 | `F10` | toggle line numbers |
 | `F12` | `:GitGutterToggle` |
