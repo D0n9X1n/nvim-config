@@ -32,10 +32,10 @@ Every plugin in `lua/plugins/init.lua` gets one of these triggers. Defaults stay
 | `neovim/nvim-lspconfig` | `event = { 'BufReadPre', 'BufNewFile' }` | LSP attaches per-buffer |
 | `pmizio/typescript-tools.nvim` | `ft = { 'typescript', 'typescriptreact', 'javascript', 'javascriptreact' }` | TS/JS LSP |
 | `hrsh7th/nvim-cmp` | `event = { 'InsertEnter', 'CmdlineEnter' }` | Completion only in insert/cmdline |
-| `SirVer/ultisnips` | `event = 'InsertEnter'` | Snippets are insert-only |
+| `SirVer/ultisnips` | **kept eager** (deliberate deviation — avoids cmp dependency entanglement risk) | Snippets are insert-only, but loaded early to prevent cmp race condition |
 | **Editing utilities** | | |
 | `Raimondi/delimitMate` | `event = 'InsertEnter'` | Insert-only |
-| `docunext/closetag.vim` | `ft = { 'html', 'xml', 'jsx', 'tsx' }` | Markup only |
+| `docunext/closetag.vim` | `ft = { 'html', 'xml', 'javascriptreact', 'typescriptreact' }` | Markup only |
 | `nvimdev/indentmini.nvim` | `event = 'BufReadPost'` | Off-by-default; load on demand |
 | `junegunn/vim-easy-align` | `keys = { { '<Plug>(EasyAlign)', mode = { 'n', 'x' } } }`, `cmd = 'EasyAlign'` | Trigger-driven |
 | `scrooloose/nerdcommenter` | `event = 'BufReadPost'` | Has `<leader>c…` keys |
@@ -57,8 +57,8 @@ Every plugin in `lua/plugins/init.lua` gets one of these triggers. Defaults stay
 | `rking/ag.vim` | `cmd = { 'Ag', 'AgAdd', 'AgFromSearch' }` | Command-only |
 | `dyng/ctrlsf.vim` | `cmd = { 'CtrlSF', 'CtrlSFOpen', 'CtrlSFToggle' }` + `keys = '\\'` | Command + keymap |
 | **UI / Buffers** | | |
-| `nvim-lualine/lualine.nvim` | `event = 'VeryLazy'` | Statusline can paint after buffer |
-| `akinsho/bufferline.nvim` | `event = 'VeryLazy'` | Tabline can paint after buffer |
+| `nvim-lualine/lualine.nvim` | **kept eager** (deliberate deviation — VeryLazy headless probe was flaky) | Statusline loads eagerly for consistent UI |
+| `akinsho/bufferline.nvim` | **kept eager** (deliberate deviation — VeryLazy headless probe was flaky) | Tabline loads eagerly for consistent UI |
 | `nvim-telescope/telescope.nvim` | `cmd = 'Telescope'`, `keys = { ',p',',f',',b' }` | Trigger-driven |
 | `nvim-neo-tree/neo-tree.nvim` | `cmd = 'Neotree'`, `keys = ',n'` | Trigger-driven |
 | **Git** | | |
@@ -78,6 +78,8 @@ Every plugin in `lua/plugins/init.lua` gets one of these triggers. Defaults stay
 ### 3.2 Lazy.nvim Defaults Change
 
 `init.lua`: keep `defaults = { lazy = false }` unchanged. We **opt-in per plugin** rather than flipping the global default. This keeps any plugin not in the table above behaving exactly as today, eliminating risk of unintentionally breaking something.
+
+**Deliberate deviations:** `lualine.nvim`, `bufferline.nvim`, and `ultisnips` are kept eager (per user decision during plan review) — see §3.1 notes.
 
 ### 3.3 Keymap Compatibility
 
@@ -162,3 +164,4 @@ None. All design decisions answered during brainstorming:
 | `cmp` only loads on InsertEnter — first `<Tab>` in insert may have a tiny stall | Acceptable; lazy.nvim load is <50ms typical |
 | Wilder needs `:UpdateRemotePlugins` — lazy on `CmdlineEnter` may delay first `:` | Acceptable; build step still runs at install |
 | Some keymap that calls a plugin function directly (not via command) might fire before the plugin loads | Audit `keymaps.lua` during implementation; convert any direct `require('plugin').fn()` to `keys` triggers or leave plugin eager |
+| Filetype names in `ft` lists must match Neovim's detected names exactly | Neovim's default detection emits `javascriptreact`/`typescriptreact` for `.jsx`/`.tsx` (not `jsx`/`tsx`). Plugin `ft` lists must match the detected names or the plugin will never load. |
