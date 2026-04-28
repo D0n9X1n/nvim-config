@@ -60,12 +60,16 @@ g.EasyMotion_smartcase = 1
 -- QuickScope
 g.qs_highlight_on_keys = { 'f', 'F', 't', 'T' }
 
--- Multiple Cursors
-g.multi_cursor_use_default_mapping = 0
-g.multi_cursor_next_key = '<C-d>'
-g.multi_cursor_prev_key = '<C-p>'
-g.multi_cursor_skip_key = '<C-j>'
-g.multi_cursor_quit_key = '<Esc>'
+-- Multiple Cursors (vim-visual-multi) — VSCode-like: <C-d> selects next occurrence
+g.VM_default_mappings = 0
+g.VM_maps = {
+  ['Find Under']         = '<C-d>',  -- normal mode: select word under cursor / next occurrence
+  ['Find Subword Under'] = '<C-d>',  -- visual mode: select next occurrence of selection
+  ['Find Prev']          = '<C-p>',
+  ['Skip Region']        = '<C-j>',
+  ['Exit']               = '<Esc>',
+  ['Select All']         = '<C-A-d>',
+}
 
 
 -- Rainbow Parentheses

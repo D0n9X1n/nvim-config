@@ -156,7 +156,7 @@ All plugins are specified in `lua/plugins/init.lua`. Config files are in `lua/co
 | **Editing** | `tpope/vim-surround` | — | Surround motions |
 | **Editing** | `luochen1990/rainbow` | `config.lua` | Rainbow parentheses, active=1 |
 | **Editing** | `unblevable/quick-scope` | `config.lua` | Highlight f/F/t/T targets |
-| **Editing** | `terryma/vim-multiple-cursors` | `config.lua` | C-d next, C-p prev, C-j skip |
+| **Editing** | `mg979/vim-visual-multi` | `config.lua` | C-d next, C-p prev, C-j skip, C-A-d all |
 | **Editing** | `folke/todo-comments.nvim` | — | TODO/FIXME highlights |
 | **Movement** | `Lokaltog/vim-easymotion` | `config.lua` | `,,h/j/k/l/.` |
 | **Telescope** | `nvim-telescope/telescope.nvim` | `telescope.lua` | `,p` files, `,f` grep, `,b` buffers |
@@ -291,12 +291,13 @@ All plugins are specified in `lua/plugins/init.lua`. Config files are in `lua/co
 | `<Tab>` | expand / jump forward |
 | `<S-Tab>` | jump backward |
 
-### Multi-cursor (config.lua)
+### Multi-cursor (vim-visual-multi, config.lua)
 | Key | Action |
 |---|---|
-| `<C-d>` | select next occurrence |
+| `<C-d>` | select word under cursor / next occurrence |
 | `<C-p>` | select previous |
 | `<C-j>` | skip occurrence |
+| `<C-A-d>` | select all occurrences |
 | `<Esc>` | quit |
 
 ### Neo-tree panel
