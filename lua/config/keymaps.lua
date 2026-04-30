@@ -172,6 +172,11 @@ map('n', '<leader>a', '<Plug>(EasyAlign)', opts)
 map('v', '<leader>a', '<Plug>(EasyAlign)', opts)
 map('n', '<leader>b', ':Telescope buffers<CR>', opts)
 
+-- vim-visual-multi: also trigger Find-Under from insert mode (VS Code-style)
+vim.keymap.set('i', '<C-d>', '<Esc><Plug>(VM-Find-Under)', { silent = true })
+-- ...and from Select mode (mouse / shift+arrow selections), since selectmode='mouse,key'
+vim.keymap.set('s', '<C-d>', '<C-g><Plug>(VM-Find-Subword-Under)', { silent = true })
+
 -- EasyMotion mappings
 map('n', '<leader><leader>h', '<Plug>(easymotion-linebackward)', opts)
 map('n', '<leader><leader>j', '<Plug>(easymotion-j)', opts)
