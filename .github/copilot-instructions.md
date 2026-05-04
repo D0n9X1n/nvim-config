@@ -72,6 +72,39 @@ nvim --headless "+lua print('ok')" +qa   # config parses without errors
 5. Remove related autocommands from `lua/config/autocmds.lua`
 6. Update `QUICKREF.md`
 
+## Releases
+
+**Every new tag is a release.** Whenever a version tag is pushed, a matching GitHub Release must be created — they go together, no exceptions.
+
+Versioning follows SemVer (`vMAJOR.MINOR.PATCH`):
+- **patch** (`v0.1.1` → `v0.1.2`) — bug fixes, doc-only updates
+- **minor** (`v0.1.x` → `v0.2.0`) — new plugins, new keymaps, behavior changes
+- **major** (`v0.x.x` → `v1.0.0`) — breaking changes to layout, leader, or required Neovim version
+
+Standard release flow:
+
+```sh
+# 1. commit the change
+git commit -am "fix(scope): short description"
+
+# 2. tag (annotated)
+git tag -a vX.Y.Z -m "vX.Y.Z: short description"
+
+# 3. push commit and tag
+git push origin main
+git push origin vX.Y.Z
+
+# 4. create the GitHub Release (REQUIRED for every tag)
+gh release create vX.Y.Z \
+  --title "vX.Y.Z — short description" \
+  --notes "## Changes
+- ...
+
+**Full Changelog**: https://github.com/D0n9X1n/nvim-config/compare/vPREV...vX.Y.Z"
+```
+
+Find the previous tag with `git tag --sort=-v:refname | head -2`.
+
 ## Do NOT
 
 - Edit `private.lua` or `private_config.lua` — gitignored and personal
