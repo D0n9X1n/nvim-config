@@ -292,6 +292,8 @@ All plugins are specified in `lua/plugins/init.lua`. Config files are in `lua/co
 | `<S-Tab>` | jump backward |
 
 ### Multi-cursor (vim-visual-multi, config.lua)
+Loaded on `BufReadPost` and `BufNewFile`, so `<C-d>` works in brand-new buffers (e.g. fresh `.cc` files).
+
 | Key | Action |
 |---|---|
 | `<C-d>` | select word under cursor / next occurrence |

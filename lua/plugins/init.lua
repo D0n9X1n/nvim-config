@@ -146,7 +146,7 @@ return {
   },
   { 'luochen1990/rainbow', event = 'BufReadPost' },
   { 'unblevable/quick-scope', event = 'BufReadPost' },
-  { 'mg979/vim-visual-multi', branch = 'master', event = 'BufReadPost' },
+  { 'mg979/vim-visual-multi', branch = 'master', event = { 'BufReadPost', 'BufNewFile' } },
   {
     'folke/todo-comments.nvim',
     dependencies = { 'nvim-lua/plenary.nvim' },
