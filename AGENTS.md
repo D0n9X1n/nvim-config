@@ -41,6 +41,16 @@ install.sh                  ← macOS installer (Homebrew deps, symlinks, privat
 3. lazy.nvim bootstrap + plugin loading (merges `config.private` if it exists)
 4. `config.theme` → `config.private_config` (pcall, safe if missing)
 
+## Plugin lazy-load events
+
+When using `event = ...` in a plugin spec, **always pair `BufReadPost` with `BufNewFile`** (and `BufReadPre` with `BufNewFile`) so the plugin also loads for brand-new files (`nvim foo.cc` for a non-existent path). `BufReadPost` only fires when an existing file is read; `BufNewFile` covers the empty-buffer case.
+
+```lua
+{ 'some/plugin', event = { 'BufReadPost', 'BufNewFile' } }
+```
+
+Past bugs caused by `BufReadPost` alone: `<C-d>` (vim-visual-multi) and `,cc` (nerdcommenter) silently doing nothing on a fresh buffer.
+
 ## How to Add a Plugin
 
 1. Add the plugin spec to `lua/plugins/init.lua` (Lua table with repo string)

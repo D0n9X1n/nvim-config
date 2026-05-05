@@ -54,6 +54,16 @@ nvim --headless "+lua print('ok')" +qa   # config parses without errors
 - **pcall wrapping**: use `pcall(require, ...)` for anything that may not be installed
 - Prefer `vim.opt` / `vim.api` over `vim.cmd`; only comment non-obvious logic
 
+## Plugin lazy-load events
+
+When using `event = ...` in a plugin spec, **always pair `BufReadPost` with `BufNewFile`** (and `BufReadPre` with `BufNewFile`) so the plugin also loads for brand-new files (`nvim foo.cc` for a non-existent path). `BufReadPost` only fires when an existing file is read; `BufNewFile` covers the empty-buffer case.
+
+```lua
+{ 'some/plugin', event = { 'BufReadPost', 'BufNewFile' } }
+```
+
+Past bugs caused by `BufReadPost` alone: `<C-d>` (vim-visual-multi) and `,cc` (nerdcommenter) silently doing nothing on a fresh buffer.
+
 ## How to Add a Plugin
 
 1. Add spec to `lua/plugins/init.lua`

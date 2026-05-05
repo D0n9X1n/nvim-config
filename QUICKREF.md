@@ -292,8 +292,6 @@ All plugins are specified in `lua/plugins/init.lua`. Config files are in `lua/co
 | `<S-Tab>` | jump backward |
 
 ### Multi-cursor (vim-visual-multi, config.lua)
-Loaded on `BufReadPost` and `BufNewFile`, so `<C-d>` works in brand-new buffers (e.g. fresh `.cc` files).
-
 | Key | Action |
 |---|---|
 | `<C-d>` | select word under cursor / next occurrence |
@@ -301,6 +299,21 @@ Loaded on `BufReadPost` and `BufNewFile`, so `<C-d>` works in brand-new buffers 
 | `<C-j>` | skip occurrence |
 | `<C-A-d>` | select all occurrences |
 | `<Esc>` | quit |
+
+### Commenting (nerdcommenter)
+`,cc` and `,c<Space>` are swapped from the plugin defaults (override in `keymaps.lua`); other `,c…` mappings remain default.
+
+| Key | Action |
+|---|---|
+| `,cc` | **toggle** comment on line/selection |
+| `,c<Space>` | comment line/selection |
+| `,cu` | uncomment line/selection |
+| `,cm` | minimal comment (block style) |
+| `,cs` | sexy block comment |
+| `,c$` | comment to end of line |
+| `,cy` | yank then comment |
+| `,ci` | invert comment state |
+| `,cn` | nested comment |
 
 ### Neo-tree panel
 | Key | Action |

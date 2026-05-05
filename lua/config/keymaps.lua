@@ -177,6 +177,12 @@ vim.keymap.set('i', '<C-d>', '<Esc><Plug>(VM-Find-Under)', { silent = true })
 -- ...and from Select mode (mouse / shift+arrow selections), since selectmode='mouse,key'
 vim.keymap.set('s', '<C-d>', '<C-g><Plug>(VM-Find-Subword-Under)', { silent = true })
 
+-- NerdCommenter: swap defaults so ,cc toggles and ,c<space> always comments.
+-- Mapping these keys upfront also prevents NERDCommenter from creating its
+-- conflicting defaults (it skips defaults when the lhs is already mapped).
+vim.keymap.set({ 'n', 'x' }, '<leader>cc', '<Plug>NERDCommenterToggle', { silent = true })
+vim.keymap.set({ 'n', 'x' }, '<leader>c<Space>', '<Plug>NERDCommenterComment', { silent = true })
+
 -- EasyMotion mappings
 map('n', '<leader><leader>h', '<Plug>(easymotion-linebackward)', opts)
 map('n', '<leader><leader>j', '<Plug>(easymotion-j)', opts)

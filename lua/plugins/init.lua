@@ -44,7 +44,7 @@ return {
   -- HTML / CSS / Markdown
   {
     'NvChad/nvim-colorizer.lua',
-    event = 'BufReadPost',
+    event = { 'BufReadPost', 'BufNewFile' },
     config = function()
       require('config.plugins.colorizer')
     end,
@@ -124,7 +124,7 @@ return {
   -- Indent Guides
   {
     'nvimdev/indentmini.nvim',
-    event = 'BufReadPost',
+    event = { 'BufReadPost', 'BufNewFile' },
     config = function()
       require('config.plugins.indentmini')
     end,
@@ -138,23 +138,23 @@ return {
       { '<Plug>(EasyAlign)', mode = { 'n', 'x' } },
     },
   },
-  { 'scrooloose/nerdcommenter', event = 'BufReadPost' },
+  { 'scrooloose/nerdcommenter', event = { 'BufReadPost', 'BufNewFile' } },
   {
     'tpope/vim-repeat',
     dependencies = { 'tpope/vim-surround' },
-    event = 'BufReadPost',
+    event = { 'BufReadPost', 'BufNewFile' },
   },
-  { 'luochen1990/rainbow', event = 'BufReadPost' },
-  { 'unblevable/quick-scope', event = 'BufReadPost' },
+  { 'luochen1990/rainbow', event = { 'BufReadPost', 'BufNewFile' } },
+  { 'unblevable/quick-scope', event = { 'BufReadPost', 'BufNewFile' } },
   { 'mg979/vim-visual-multi', branch = 'master', event = { 'BufReadPost', 'BufNewFile' } },
   {
     'folke/todo-comments.nvim',
     dependencies = { 'nvim-lua/plenary.nvim' },
-    event = 'BufReadPost',
+    event = { 'BufReadPost', 'BufNewFile' },
   },
 
   -- Movement
-  { 'Lokaltog/vim-easymotion', event = 'BufReadPost' },
+  { 'Lokaltog/vim-easymotion', event = { 'BufReadPost', 'BufNewFile' } },
 
   -- File Search / Navigation
   {
@@ -214,7 +214,7 @@ return {
     cmd = { 'Git', 'G', 'Gdiffsplit', 'Gread', 'Gwrite', 'Ggrep',
             'GMove', 'GDelete', 'GBrowse', 'GRemove', 'Gblame' },
   },
-  { 'airblade/vim-gitgutter', event = 'BufReadPost' },
+  { 'airblade/vim-gitgutter', event = { 'BufReadPost', 'BufNewFile' } },
 
   -- Misc Tools
   { 'sjl/gundo.vim', cmd = 'GundoToggle' },
