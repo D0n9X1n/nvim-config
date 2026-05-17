@@ -19,7 +19,7 @@ g.everforest_better_performance = 1
 
 -- Set colorscheme
 pcall(function()
-  vim.cmd('colorscheme gruvbox')
+  vim.cmd('colorscheme apollo')
 end)
 
 -- Match sign column background to line number column
