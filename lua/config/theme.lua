@@ -22,21 +22,6 @@ pcall(function()
   vim.cmd('colorscheme gruvbox')
 end)
 
--- Override background to match Apollo / wezterm canvas (#141617).
--- Done after colorscheme load so gruvbox's own Normal hl is replaced.
-local function apply_apollo_bg()
-  local bg = '#141617'
-  for _, group in ipairs({
-    'Normal', 'NormalNC', 'NormalFloat', 'SignColumn',
-    'EndOfBuffer', 'LineNr', 'FoldColumn',
-  }) do
-    pcall(vim.api.nvim_set_hl, 0, group, vim.tbl_extend('force',
-      vim.api.nvim_get_hl(0, { name = group }) or {}, { bg = bg }))
-  end
-end
-apply_apollo_bg()
-vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_apollo_bg })
-
 -- Match sign column background to line number column
 vim.cmd('hi! link SignColumn LineNr')
 vim.cmd('hi! link ShowMarksHLl DiffAdd')
