@@ -3,6 +3,36 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+REPO_DIR=$PWD
+SMOKE_TMP=$(mktemp -d /tmp/nvim-smoke.XXXXXX)
+trap 'rm -rf "$SMOKE_TMP"' EXIT
+export TMPDIR="$SMOKE_TMP/tmp"
+mkdir -p "$TMPDIR"
+XDG_CONFIG_HOME="$SMOKE_TMP/config"
+mkdir -p "$XDG_CONFIG_HOME"
+ln -s "$REPO_DIR" "$XDG_CONFIG_HOME/nvim"
+
+LAZY_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/lazy/lazy.nvim"
+if [ ! -d "$LAZY_DIR" ]; then
+  printf 'lazy.nvim is not installed at %s; refusing to install during smoke tests\n' "$LAZY_DIR" >&2
+  exit 1
+fi
+
+export NVIM_SMOKE_NO_INSTALL="$SMOKE_TMP/no-install.lua"
+cat > "$NVIM_SMOKE_NO_INSTALL" <<'LUA'
+local lazy_path = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
+vim.opt.runtimepath:prepend(lazy_path)
+
+local lazy = require('lazy')
+local setup = lazy.setup
+lazy.setup = function(spec, options)
+  options = options or {}
+  options.install = options.install or {}
+  options.install.missing = false
+  return setup(spec, options)
+end
+LUA
+
 PASS=0; FAIL=0
 ok()  { printf '  \033[32mPASS\033[0m %s\n' "$*"; PASS=$((PASS+1)); }
 bad() { printf '  \033[31mFAIL\033[0m %s\n' "$*"; FAIL=$((FAIL+1)); }
@@ -11,7 +41,7 @@ bad() { printf '  \033[31mFAIL\033[0m %s\n' "$*"; FAIL=$((FAIL+1)); }
 # vim.cmd('cq') to fail. Returns 0 on pass, non-zero on fail.
 nvim_probe() {
   local desc="$1"; shift
-  if nvim --headless -u init.lua "$@" +qa 2>/dev/null; then
+  if XDG_CONFIG_HOME="$XDG_CONFIG_HOME" nvim --headless --cmd "lua dofile(vim.env.NVIM_SMOKE_NO_INSTALL)" "$@" +qa 2>/dev/null; then
     ok "$desc"
   else
     bad "$desc"
@@ -34,6 +64,239 @@ assert_loads_on_ft_explicit() { nvim_probe "$1 loads on ft=$2" +"e scratch" +"se
 assert_loads_on_cmd()    { nvim_probe "$1 loads on :$2"         +"silent! $2"   +"lua $(loaded_lua "$1")"; }
 assert_loads_on_event()  { nvim_probe "$1 loads on $2"          +"doautocmd $2" +"lua $(loaded_lua "$1")"; }
 assert_loads_on_insert() { nvim_probe "$1 loads on InsertEnter" +"doautocmd InsertEnter"  +"lua $(loaded_lua "$1")"; }
+
+export NVIM_SMOKE_BUFFERLINE_CONFIG="$SMOKE_TMP/bufferline-config.lua"
+cat > "$NVIM_SMOKE_BUFFERLINE_CONFIG" <<'LUA'
+local function run()
+  local options = require('bufferline.config').options
+  local formatter = assert(options.name_formatter, 'Bufferline name_formatter is missing')
+
+  local file_name = formatter({ path = '/tmp/project/example.lua', name = 'fallback.lua' })
+  assert(file_name == 'example.lua', 'name_formatter must derive the basename from buf.path')
+
+  local supplied_name = 'project/'
+  local directory_name = formatter({ path = '/tmp/project/', name = supplied_name })
+  assert(directory_name == supplied_name, 'name_formatter must fall back when a trailing slash has no basename')
+
+  assert(options.indicator.style == 'icon', 'Bufferline indicator must use icon style')
+  assert(options.indicator.icon == ' ', 'Bufferline indicator must reserve one invisible column')
+end
+
+local ok, err = xpcall(run, debug.traceback)
+if not ok then
+  vim.api.nvim_err_writeln(err)
+  vim.cmd('cq')
+end
+LUA
+
+export NVIM_SMOKE_DIRECTORY="$SMOKE_TMP/directory-regression.lua"
+cat > "$NVIM_SMOKE_DIRECTORY" <<'LUA'
+local function run()
+  local repo = assert(vim.env.NVIM_SMOKE_REPO, 'NVIM_SMOKE_REPO is missing')
+  local case = assert(vim.g.smoke_case, 'smoke case is missing')
+  local uv = vim.uv or vim.loop
+
+  local function normalize(path)
+    if path == '' then
+      return ''
+    end
+    return vim.fs.normalize(path):gsub('/+$', '')
+  end
+
+  repo = normalize(repo)
+
+  local function tree_windows()
+    local result = {}
+    for _, winid in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      local bufnr = vim.api.nvim_win_get_buf(winid)
+      if vim.bo[bufnr].filetype == 'neo-tree' then
+        result[#result + 1] = winid
+      end
+    end
+    return result
+  end
+
+  local function listed_buffers()
+    local result = {}
+    for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buflisted then
+        result[#result + 1] = bufnr
+      end
+    end
+    return result
+  end
+
+  local function listed_paths_match(expected_paths)
+    local expected = {}
+    for _, path in ipairs(expected_paths) do
+      expected[normalize(path)] = true
+    end
+
+    local buffers = listed_buffers()
+    if #buffers ~= #expected_paths then
+      return false
+    end
+    for _, bufnr in ipairs(buffers) do
+      if not expected[normalize(vim.api.nvim_buf_get_name(bufnr))] then
+        return false
+      end
+    end
+    return true
+  end
+
+  local tree_win
+  local state
+  local settled = vim.wait(5000, function()
+    local wins = tree_windows()
+    if #wins ~= 1 then
+      return false
+    end
+
+    local manager = require('neo-tree.sources.manager')
+    local candidate = manager.get_state('filesystem')
+    if candidate.winid ~= wins[1] or not candidate._ready or not candidate.tree then
+      return false
+    end
+
+    tree_win = wins[1]
+    state = candidate
+    return true
+  end, 10)
+
+  assert(settled, 'directory startup did not settle to one ready Neo-tree window')
+  assert(vim.api.nvim_win_get_width(tree_win) == 32, 'Neo-tree width must be 32 columns')
+  assert(normalize(state.path or '') == repo, 'Neo-tree root must be the positional directory')
+
+  local tree_buf = vim.api.nvim_win_get_buf(tree_win)
+  assert(not vim.bo[tree_buf].buflisted, 'Neo-tree buffer must not be listed')
+  for _, bufnr in ipairs(listed_buffers()) do
+    assert(normalize(vim.api.nvim_buf_get_name(bufnr)) ~= repo, 'the directory buffer must not remain listed')
+  end
+
+  if case == 'startup' then
+    return
+  end
+
+  local renderer = require('neo-tree.ui.renderer')
+  local commands = require('neo-tree.sources.filesystem.commands')
+
+  local file_paths = {}
+  for _, node in ipairs(renderer.get_all_visible_nodes(state.tree)) do
+    local path = normalize(node.path or node:get_id())
+    local stat = uv.fs_stat(path)
+    if node.type == 'file' and stat and stat.type == 'file' and path ~= repo .. '/.git' then
+      file_paths[#file_paths + 1] = path
+    end
+  end
+  assert(#file_paths >= 2, 'Neo-tree must expose at least two real files for the regression probe')
+
+  local first_path = file_paths[1]
+  local second_path = file_paths[2]
+
+  local function assert_tree_persisted()
+    local wins = tree_windows()
+    assert(#wins == 1 and wins[1] == tree_win, 'the original Neo-tree window must persist')
+    assert(vim.api.nvim_win_is_valid(tree_win), 'the original Neo-tree window became invalid')
+    assert(vim.api.nvim_win_get_buf(tree_win) == tree_buf, 'the original Neo-tree buffer was replaced')
+    assert(vim.api.nvim_win_get_width(tree_win) == 32, 'Neo-tree width changed after opening a file')
+  end
+
+  local function open_from_tree(path)
+    vim.api.nvim_set_current_win(tree_win)
+    assert(renderer.focus_node(state, path), 'failed to focus file in Neo-tree: ' .. path)
+    commands.open(state)
+    assert(vim.wait(5000, function()
+      return normalize(vim.api.nvim_buf_get_name(0)) == path
+    end, 10), 'Neo-tree did not open file: ' .. path)
+    assert_tree_persisted()
+  end
+
+  open_from_tree(first_path)
+  assert(vim.wait(5000, function()
+    return listed_paths_match({ first_path })
+  end, 10), 'opening the first file must leave only that file listed')
+
+  if case == 'first_file' then
+    return
+  end
+
+  open_from_tree(second_path)
+  assert(vim.wait(5000, function()
+    return listed_paths_match({ first_path, second_path })
+  end, 10), 'opening the second file must leave exactly two real files listed')
+
+  local left = vim.fn.maparg('<Left>', 'n', false, true)
+  local right = vim.fn.maparg('<Right>', 'n', false, true)
+  assert(left.rhs == ':BufferLineCyclePrev<CR>', 'effective <Left> mapping must invoke BufferLineCyclePrev')
+  assert(right.rhs == ':BufferLineCycleNext<CR>', 'effective <Right> mapping must invoke BufferLineCycleNext')
+
+  local bufferline = require('bufferline')
+  local bufferline_state = require('bufferline.state')
+
+  local function render()
+    _G.nvim_bufferline()
+  end
+
+  local function component_ids()
+    render()
+    local elements = bufferline.get_elements().elements
+    assert(#elements == 2, 'Bufferline must contain exactly the two real files')
+
+    local ids = {}
+    for _, element in ipairs(elements) do
+      assert(element.id ~= tree_buf, 'Neo-tree must not be a Bufferline component')
+      assert(vim.bo[element.id].filetype ~= 'neo-tree', 'Neo-tree must not be a Bufferline component')
+      local path = normalize(element.path or '')
+      assert(path == first_path or path == second_path, 'Bufferline contains a startup artifact')
+      ids[#ids + 1] = element.id
+    end
+    return ids
+  end
+
+  local ids = component_ids()
+
+  local function layout_snapshot()
+    render()
+    local column = bufferline_state.left_offset_size
+    local snapshot = {}
+    for _, component in ipairs(bufferline_state.components) do
+      snapshot[#snapshot + 1] = {
+        id = component.id,
+        length = component.length,
+        column = column,
+      }
+      column = column + component.length
+    end
+    return snapshot
+  end
+
+  vim.api.nvim_set_current_buf(ids[1])
+  local baseline = layout_snapshot()
+
+  local function press(lhs, expected_id)
+    vim.api.nvim_feedkeys(vim.keycode(lhs), 'xt', false)
+    assert(vim.wait(1000, function()
+      return vim.api.nvim_get_current_buf() == expected_id
+    end, 10), lhs .. ' did not select the expected Bufferline component')
+    assert(listed_paths_match({ first_path, second_path }), lhs .. ' changed the listed file buffers')
+    assert_tree_persisted()
+    assert(vim.deep_equal(layout_snapshot(), baseline), lhs .. ' changed Bufferline IDs, order, lengths, or columns')
+  end
+
+  press('<Right>', ids[2])
+  press('<Right>', ids[1])
+  press('<Left>', ids[2])
+  press('<Left>', ids[1])
+end
+
+local ok, err = xpcall(run, debug.traceback)
+if not ok then
+  vim.api.nvim_err_writeln(err)
+  vim.cmd('cq')
+end
+LUA
+
+export NVIM_SMOKE_REPO="$REPO_DIR"
 
 echo "== smoke matrix =="
 # rows are appended by later tasks (insert above this marker)
@@ -93,8 +356,11 @@ assert_not_eager ctrlsf.vim
 assert_loads_on_cmd ctrlsf.vim CtrlSFToggle
 assert_not_eager telescope.nvim
 assert_loads_on_cmd telescope.nvim "Telescope find_files"
-assert_not_eager neo-tree.nvim
-assert_loads_on_cmd neo-tree.nvim "Neotree close"
+nvim_probe "neo-tree.nvim is eager (directory hijack ready at startup)" +"lua $(loaded_lua neo-tree.nvim)"
+nvim_probe "Bufferline formatter and indicator keep stable width" +"lua dofile(vim.env.NVIM_SMOKE_BUFFERLINE_CONFIG)"
+nvim_probe "nvim <directory> settles to one persistent Neo-tree" "$REPO_DIR" +"let g:smoke_case='startup'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
+nvim_probe "opening first Neo-tree file preserves tree and listed buffers" "$REPO_DIR" +"let g:smoke_case='first_file'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
+nvim_probe "Bufferline arrows cycle real files with stable layout" "$REPO_DIR" +"let g:smoke_case='bufferline'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 assert_not_eager vim-fugitive
 assert_loads_on_cmd vim-fugitive "Git status"
 assert_not_eager vim-gitgutter

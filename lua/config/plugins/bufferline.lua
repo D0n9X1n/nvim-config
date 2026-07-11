@@ -6,7 +6,8 @@ require('bufferline').setup({
   options = {
     mode = 'buffers',
     name_formatter = function(buf)
-      return vim.fn.fnamemodify(buf.name, ':t')
+      local basename = vim.fn.fnamemodify(buf.path, ':t')
+      return basename ~= '' and basename or buf.name
     end,
     offsets = {
       {
@@ -21,7 +22,7 @@ require('bufferline').setup({
     separator_style = { '(', ')' },
     indicator = {
       style = 'icon',
-      icon = '',
+      icon = ' ',
     },
     max_name_length = 16,
     tab_size = 16,

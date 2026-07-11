@@ -33,9 +33,7 @@ local function close_buffer_smart()
   end
 end
 
--- Disable arrow keys in normal mode
-map('n', '<Left>', '<Nop>', opts)
-map('n', '<Right>', '<Nop>', opts)
+-- Disable vertical arrow keys in normal mode
 map('n', '<Up>', '<Nop>', opts)
 map('n', '<Down>', '<Nop>', opts)
 
@@ -108,8 +106,8 @@ map('n', '*', '#', opts)
 -- Buffer navigation
 map('n', '[b', ':bprevious<CR>', opts)
 map('n', ']b', ':bnext<CR>', opts)
-map('n', '<left>', ':bp<CR>', opts)
-map('n', '<right>', ':bn<CR>', opts)
+map('n', '<Left>', ':BufferLineCyclePrev<CR>', opts)
+map('n', '<Right>', ':BufferLineCycleNext<CR>', opts)
 map('n', '<leader>q', function() close_buffer_smart() end, { silent = true })
 
 -- Tab navigation
