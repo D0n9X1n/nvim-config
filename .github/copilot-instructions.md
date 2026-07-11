@@ -2,30 +2,15 @@
 
 Personal Neovim configuration using **lazy.nvim**. Symlinked into `~/.config/nvim/` — edits take effect immediately.
 
-## Agent Framework
-
-This project uses the [feature-crew](https://github.com/D0n9X1n/feature-crew) agent framework (vendored as a git submodule at `feature-crew/`).
-
-Read and follow `feature-crew/.github/copilot-instructions.md` for all development workflows.
-
-When the user asks to build, fix, or change anything non-trivial:
-1. Act as the PM — discuss requirements, produce a spec
-2. Dispatch agents from `feature-crew/agents/` following `feature-crew/workflow/pipeline.md`
-3. Run all independent work in parallel
-
-Agent templates: `feature-crew/agents/`
-Pipeline definition: `feature-crew/workflow/pipeline.md`
-
-For trivial single-file edits (typo fixes, small config tweaks), proceed directly without dispatching the full pipeline.
-
 ## Validation
 
-There are no tests or linters. After any change, verify with:
+Run the isolated smoke suite after any change:
 
 ```sh
-nvim --headless "+Lazy! sync" +qa        # plugins load without errors
-nvim --headless "+lua print('ok')" +qa   # config parses without errors
+bash scripts/smoke.sh
 ```
+
+The suite loads this checkout in a temporary Neovim config and refuses to install missing plugins.
 
 ## Architecture
 

@@ -1,5 +1,11 @@
 # Neovim Configuration
 
+[![Latest Release](https://img.shields.io/github/v/release/D0n9X1n/nvim-config?style=flat-square&logo=github&label=release)](https://github.com/D0n9X1n/nvim-config/releases/latest)
+[![Neovim](https://img.shields.io/badge/Neovim-%E2%89%A50.10-57A143?style=flat-square&logo=neovim&logoColor=white)](https://neovim.io/)
+[![Lua](https://img.shields.io/badge/config-Lua-2C2D72?style=flat-square&logo=lua&logoColor=white)](https://github.com/D0n9X1n/nvim-config/tree/main/lua)
+[![License](https://img.shields.io/github/license/D0n9X1n/nvim-config?style=flat-square&label=license)](LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/D0n9X1n/nvim-config?style=flat-square&logo=git&logoColor=white)](https://github.com/D0n9X1n/nvim-config/commits/main)
+
 A modern Neovim configuration ported from the original [m-vim](https://github.com/D0n9X1n/m-vim) setup.
 Written in Lua, managed by [lazy.nvim](https://github.com/folke/lazy.nvim).
 
