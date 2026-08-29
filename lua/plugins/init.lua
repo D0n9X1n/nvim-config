@@ -31,9 +31,10 @@ return {
   },
 
   -- Colorschemes
-  { 'MOSconfig/vim-solarized8',     lazy = true },
-  { 'MOSconfig/gruvbox',            lazy = false, priority = 1000 },
-  { 'chriskempson/base16-vim',      lazy = true },
+  { 'apollo-theme/nvim-apollo-theme', lazy = false, priority = 1000 },
+  { 'MOSconfig/vim-solarized8',       lazy = true },
+  { 'MOSconfig/gruvbox',              lazy = true },
+  { 'chriskempson/base16-vim',        lazy = true },
   { 'sainnhe/everforest',           lazy = true },
   { 'ayu-theme/ayu-vim',            lazy = true },
   {

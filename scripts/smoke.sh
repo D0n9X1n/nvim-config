@@ -41,10 +41,12 @@ bad() { printf '  \033[31mFAIL\033[0m %s\n' "$*"; FAIL=$((FAIL+1)); }
 # vim.cmd('cq') to fail. Returns 0 on pass, non-zero on fail.
 nvim_probe() {
   local desc="$1"; shift
-  if XDG_CONFIG_HOME="$XDG_CONFIG_HOME" nvim --headless --cmd "lua dofile(vim.env.NVIM_SMOKE_NO_INSTALL)" "$@" +qa 2>/dev/null; then
+  local output
+  if output=$(XDG_CONFIG_HOME="$XDG_CONFIG_HOME" nvim --headless --cmd "lua dofile(vim.env.NVIM_SMOKE_NO_INSTALL)" "$@" +qa 2>&1); then
     ok "$desc"
   else
     bad "$desc"
+    printf '%s\n' "$output" >&2
   fi
 }
 
@@ -144,6 +146,18 @@ local function run()
     return true
   end
 
+  local function listed_buffer_summary()
+    local result = {}
+    for _, bufnr in ipairs(listed_buffers()) do
+      result[#result + 1] = {
+        bufnr = bufnr,
+        filetype = vim.bo[bufnr].filetype,
+        path = normalize(vim.api.nvim_buf_get_name(bufnr)),
+      }
+    end
+    return vim.inspect(result)
+  end
+
   local tree_win
   local state
   local settled = vim.wait(5000, function()
@@ -184,7 +198,8 @@ local function run()
   for _, node in ipairs(renderer.get_all_visible_nodes(state.tree)) do
     local path = normalize(node.path or node:get_id())
     local stat = uv.fs_stat(path)
-    if node.type == 'file' and stat and stat.type == 'file' and path ~= repo .. '/.git' then
+    local name = vim.fs.basename(path)
+    if node.type == 'file' and stat and stat.type == 'file' and name:sub(1, 1) ~= '.' then
       file_paths[#file_paths + 1] = path
     end
   end
@@ -214,13 +229,16 @@ local function run()
   open_from_tree(first_path)
   assert(vim.wait(5000, function()
     return listed_paths_match({ first_path })
-  end, 10), 'opening the first file must leave only that file listed')
+  end, 10), 'opening the first file must leave only that file listed; got ' .. listed_buffer_summary())
 
   if case == 'first_file' then
     return
   end
 
+  local scratch_buf = vim.api.nvim_create_buf(true, true)
   open_from_tree(second_path)
+  assert(vim.api.nvim_buf_is_valid(scratch_buf), 'later Neo-tree opens must preserve unrelated scratch buffers')
+  vim.api.nvim_buf_delete(scratch_buf, { force = true })
   assert(vim.wait(5000, function()
     return listed_paths_match({ first_path, second_path })
   end, 10), 'opening the second file must leave exactly two real files listed')
@@ -380,8 +398,10 @@ assert_not_eager base16-vim
 assert_not_eager everforest
 assert_not_eager ayu-vim
 assert_not_eager NeoSolarized.nvim
-nvim_probe "gruvbox is eager (loaded at startup)" +"lua $(loaded_lua gruvbox)"
-nvim_probe "gruvbox has priority = 1000" +"lua local p=require('lazy.core.config').plugins['gruvbox']; if not (p and p.priority == 1000) then vim.cmd('cq') end"
+assert_not_eager gruvbox
+nvim_probe "Apollo is eager (loaded at startup)" +"lua $(loaded_lua nvim-apollo-theme)"
+nvim_probe "Apollo has priority = 1000" +"lua local p=require('lazy.core.config').plugins['nvim-apollo-theme']; if not (p and p.priority == 1000) then vim.cmd('cq') end"
+nvim_probe "Apollo is the active colorscheme" +"lua if vim.g.colors_name ~= 'apollo' then vim.cmd('cq') end"
 
 echo
 echo "== Intentionally eager (kept eager per user decision) =="

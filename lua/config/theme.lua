@@ -8,18 +8,13 @@ local g = vim.g
 -- Background
 opt.background = 'dark'
 
--- Gruvbox settings (kept for reference)
-g.gruvbox_contrast_dark = 'hard'
-g.gruvbox_improved_warnings = 1
-g.gruvbox_sign_column = 'bg0'
-
 -- Everforest settings (kept for reference)
 g.everforest_background = 'medium'
 g.everforest_better_performance = 1
 
 -- Set colorscheme
 pcall(function()
-  vim.cmd('colorscheme gruvbox')
+  vim.cmd.colorscheme('apollo')
 end)
 
 -- Match sign column background to line number column
@@ -70,9 +65,6 @@ let &t_EI.="\e[1 q" "EI = NORMAL mode (ELSE)
 -- GUI-specific settings
 if vim.fn.has('gui_running') == 1 then
   opt.guifont = 'Rec Mono St.Helens:h14'
-  pcall(function()
-    vim.cmd('colorscheme solarized8_flat')
-  end)
 end
 
 -- XTerm paste support

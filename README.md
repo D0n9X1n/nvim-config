@@ -9,7 +9,7 @@
 A modern Neovim configuration ported from the original [m-vim](https://github.com/D0n9X1n/m-vim) setup.
 Written in Lua, managed by [lazy.nvim](https://github.com/folke/lazy.nvim).
 
-> **For AI agents**: See [`QUICKREF.md`](QUICKREF.md) for a machine-readable technical reference.
+> **For Claude Code**: See [`CLAUDE.md`](CLAUDE.md) for repository operations and architecture.
 
 ## Highlights
 
@@ -157,9 +157,9 @@ Leader key: **`,`** (comma)
 
 ## Theme
 
-Default: **Gruvbox** (dark, hard contrast). Change in `lua/config/theme.lua`.
+Default: **Apollo** (warm, high-contrast dark). Change in `lua/config/theme.lua`.
 
-Available: `gruvbox`, `solarized8`, `everforest`, `base16-*`, `ayu`.
+Available: `apollo`, `gruvbox`, `solarized8`, `everforest`, `base16-*`, `ayu`.
 
 ## Customization
 
