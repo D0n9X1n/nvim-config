@@ -17,11 +17,6 @@ local severity_name = {
   [vim.diagnostic.severity.HINT] = "Hint",
 }
 
-for name, icon in pairs(diagnostic_icons) do
-  local hl = "DiagnosticSign" .. name
-  vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
-end
-
 vim.diagnostic.config({
   virtual_text = {
     prefix = function(diagnostic)
@@ -32,7 +27,9 @@ vim.diagnostic.config({
     severity = { min = vim.diagnostic.severity.ERROR },
   },
   signs = false,
-  underline = true,
+  underline = {
+    severity = { min = vim.diagnostic.severity.WARN },
+  },
   update_in_insert = false,
   severity_sort = true,
 })

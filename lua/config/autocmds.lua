@@ -132,6 +132,62 @@ for _, filetype in ipairs({ 'c', 'cpp', 'java', 'go', 'php', 'javascript', 'pupp
   })
 end
 
+local diagnostic_warning_group = augroup('DiagnosticLineWarning', { clear = true })
+
+local function clear_line_warning()
+  vim.api.nvim_echo({ { '' } }, false, {})
+end
+
+local function echo_line_warning()
+  if vim.fn.mode():sub(1, 1) == 'i' then
+    return
+  end
+
+  local bufnr = vim.api.nvim_get_current_buf()
+  if not vim.api.nvim_buf_is_valid(bufnr) or not vim.api.nvim_buf_is_loaded(bufnr) then
+    return
+  end
+
+  local lnum = vim.api.nvim_win_get_cursor(0)[1] - 1
+  local warnings = vim.diagnostic.get(bufnr, {
+    lnum = lnum,
+    severity = vim.diagnostic.severity.WARN,
+  })
+
+  if #warnings == 0 then
+    clear_line_warning()
+    return
+  end
+
+  local order = {}
+  for index, diagnostic in ipairs(warnings) do
+    order[diagnostic] = index
+  end
+  table.sort(warnings, function(a, b)
+    if a.col == b.col then
+      return order[a] < order[b]
+    end
+    return a.col < b.col
+  end)
+
+  local message = warnings[1].message:gsub('%s*\n%s*', ' ')
+  if #warnings > 1 then
+    message = string.format('(1/%d) %s', #warnings, message)
+  end
+
+  vim.api.nvim_echo({ { message, 'DiagnosticWarn' } }, false, {})
+end
+
+autocmd({ 'CursorMoved', 'CursorHold', 'DiagnosticChanged' }, {
+  group = diagnostic_warning_group,
+  callback = echo_line_warning,
+})
+
+autocmd({ 'InsertEnter', 'BufLeave' }, {
+  group = diagnostic_warning_group,
+  callback = clear_line_warning,
+})
+
 -- Highlight TODO / FIXME / NOTE / etc.
 local todo_group = augroup('TodoHighlight', { clear = true })
 

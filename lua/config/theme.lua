@@ -22,25 +22,39 @@ vim.cmd('hi! link SignColumn LineNr')
 vim.cmd('hi! link ShowMarksHLl DiffAdd')
 vim.cmd('hi! link ShowMarksHLu DiffChange')
 
--- LSP diagnostics: red text + underline + virtual text for errors.
-vim.cmd('hi! DiagnosticError ctermfg=Red guifg=Red')
-vim.cmd('hi! DiagnosticUnderlineError cterm=underline gui=underline ctermfg=Red guisp=Red')
-vim.cmd('hi! DiagnosticVirtualTextError ctermfg=Red guifg=Red')
-vim.cmd('hi! DiagnosticSignError ctermfg=Red guifg=Red')
-vim.cmd('hi! LspDiagnosticsDefaultError ctermfg=Red guifg=Red')
-vim.cmd('hi! LspDiagnosticsUnderlineError cterm=underline gui=underline ctermfg=Red guisp=Red')
-vim.cmd('hi! LspDiagnosticsVirtualTextError ctermfg=Red guifg=Red')
-vim.cmd('hi! LspDiagnosticsSignError ctermfg=Red guifg=Red')
+local function apply_diagnostic_highlights()
+  local error_color = '#ff3b30'
+  local warning_color = '#ff9f0a'
 
--- LSP diagnostics: orange warnings.
-vim.cmd('hi! DiagnosticWarn ctermfg=208 guifg=#ff8800')
-vim.cmd('hi! DiagnosticUnderlineWarn cterm=underline gui=underline ctermfg=208 guisp=#ff8800')
-vim.cmd('hi! DiagnosticVirtualTextWarn ctermfg=208 guifg=#ff8800')
-vim.cmd('hi! DiagnosticSignWarn ctermfg=208 guifg=#ff8800')
-vim.cmd('hi! LspDiagnosticsDefaultWarning ctermfg=208 guifg=#ff8800')
-vim.cmd('hi! LspDiagnosticsUnderlineWarning cterm=underline gui=underline ctermfg=208 guisp=#ff8800')
-vim.cmd('hi! LspDiagnosticsVirtualTextWarning ctermfg=208 guifg=#ff8800')
-vim.cmd('hi! LspDiagnosticsSignWarning ctermfg=208 guifg=#ff8800')
+  for _, group in ipairs({ 'DiagnosticError', 'DiagnosticVirtualTextError', 'DiagnosticSignError', 'DiagnosticFloatingError' }) do
+    vim.api.nvim_set_hl(0, group, { fg = error_color, ctermfg = 196 })
+  end
+  vim.api.nvim_set_hl(0, 'DiagnosticUnderlineError', {
+    fg = error_color,
+    sp = error_color,
+    undercurl = true,
+    ctermfg = 196,
+    underline = true,
+  })
+
+  for _, group in ipairs({ 'DiagnosticWarn', 'DiagnosticVirtualTextWarn', 'DiagnosticSignWarn', 'DiagnosticFloatingWarn' }) do
+    vim.api.nvim_set_hl(0, group, { fg = warning_color, ctermfg = 208 })
+  end
+  vim.api.nvim_set_hl(0, 'DiagnosticUnderlineWarn', {
+    fg = warning_color,
+    sp = warning_color,
+    undercurl = true,
+    ctermfg = 208,
+    underline = true,
+  })
+end
+
+apply_diagnostic_highlights()
+
+vim.api.nvim_create_autocmd('ColorScheme', {
+  group = vim.api.nvim_create_augroup('DiagnosticHighlights', { clear = true }),
+  callback = apply_diagnostic_highlights,
+})
 
 
 -- Softer spell-check highlights

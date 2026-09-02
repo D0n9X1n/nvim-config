@@ -314,6 +314,204 @@ if not ok then
 end
 LUA
 
+export NVIM_SMOKE_DIAGNOSTIC_CONFIG="$SMOKE_TMP/diagnostic-config.lua"
+cat > "$NVIM_SMOKE_DIAGNOSTIC_CONFIG" <<'LUA'
+local function run()
+  local severity = vim.diagnostic.severity
+  local config = vim.diagnostic.config()
+
+  assert(config.signs == false, 'diagnostic signs must stay disabled')
+
+  assert(type(config.virtual_text) == 'table', 'virtual_text must stay configured as a table')
+  local virtual_severity = config.virtual_text.severity
+  assert(type(virtual_severity) == 'table' and virtual_severity.min == severity.ERROR,
+    'virtual_text must be limited to ERROR severity')
+
+  assert(type(config.underline) == 'table', 'underline must be severity filtered, not a bare boolean')
+  local underline_severity = config.underline.severity
+  assert(type(underline_severity) == 'table' and underline_severity.min == severity.WARN,
+    'underline must cover WARN and ERROR')
+
+  for _, name in ipairs({ 'DiagnosticSignError', 'DiagnosticSignWarn', 'DiagnosticSignInfo', 'DiagnosticSignHint' }) do
+    assert(vim.tbl_isempty(vim.fn.sign_getdefined(name)),
+      'obsolete diagnostic sign must not be defined: ' .. name)
+  end
+
+  local prefix = config.virtual_text.prefix
+  assert(type(prefix) == 'function', 'virtual_text prefix must stay a function')
+  local error_prefix = prefix({ severity = severity.ERROR })
+  local warn_prefix = prefix({ severity = severity.WARN })
+  assert(type(error_prefix) == 'string' and error_prefix ~= '',
+    'the error virtual-text prefix must resolve an icon')
+  assert(error_prefix ~= warn_prefix,
+    'the virtual-text prefix must keep the severity name lookup')
+end
+
+local ok, err = xpcall(run, debug.traceback)
+if not ok then
+  vim.api.nvim_err_writeln(err)
+  vim.cmd('cq')
+end
+LUA
+
+export NVIM_SMOKE_DIAGNOSTIC_ECHO="$SMOKE_TMP/diagnostic-echo.lua"
+cat > "$NVIM_SMOKE_DIAGNOSTIC_ECHO" <<'LUA'
+local real_echo = vim.api.nvim_echo
+local echoes = {}
+
+local function echo_text(entry)
+  local parts = {}
+  for _, chunk in ipairs(entry.chunks) do
+    parts[#parts + 1] = chunk[1]
+  end
+  return table.concat(parts)
+end
+
+local function find_since(index, predicate)
+  for i = index + 1, #echoes do
+    if predicate(echoes[i]) then
+      return echoes[i]
+    end
+  end
+  return nil
+end
+
+local function find_text(index, text)
+  return find_since(index, function(entry)
+    return echo_text(entry) == text
+  end)
+end
+
+local function find_clear(index)
+  return find_since(index, function(entry)
+    return #entry.chunks == 1 and entry.chunks[1][1] == ''
+  end)
+end
+
+local function run()
+  local severity = vim.diagnostic.severity
+
+  local buf = vim.api.nvim_create_buf(true, true)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    'first line holds three warnings plus an error',
+    'second line holds a single warning',
+    'third line holds only an error',
+    'fourth line is clean',
+  })
+  vim.api.nvim_win_set_buf(0, buf)
+
+  local ns = vim.api.nvim_create_namespace('smoke_diagnostic_echo')
+  vim.diagnostic.set(ns, buf, {
+    { lnum = 0, col = 9, severity = severity.WARN, message = 'second warning' },
+    { lnum = 0, col = 2, severity = severity.WARN, message = 'first warning' },
+    { lnum = 0, col = 2, severity = severity.WARN, message = 'tied warning' },
+    { lnum = 0, col = 0, severity = severity.ERROR, message = 'an error' },
+    { lnum = 0, col = 1, severity = severity.HINT, message = 'a hint' },
+    { lnum = 1, col = 3, severity = severity.WARN, message = 'only warning' },
+    { lnum = 1, col = 0, severity = severity.INFO, message = 'an info' },
+    { lnum = 2, col = 0, severity = severity.ERROR, message = 'lonely error' },
+  })
+
+  local raw = vim.diagnostic.get(buf, { lnum = 0, severity = severity.WARN })
+  assert(#raw == 3, 'the fixture must expose exactly three warnings on the first line')
+  assert(raw[1].message == 'second warning',
+    'the fixture assumes vim.diagnostic.get keeps insertion order so the column sort stays observable')
+
+  vim.api.nvim_echo = function(chunks, history, opts)
+    echoes[#echoes + 1] = { chunks = chunks, history = history, opts = opts }
+  end
+
+  local function move_to(line)
+    vim.api.nvim_win_set_cursor(0, { line, 0 })
+    vim.api.nvim_exec_autocmds('CursorMoved', {})
+  end
+
+  local before = #echoes
+  move_to(1)
+  local first = find_text(before, '(1/3) first warning')
+  assert(first, 'three warnings on one line must echo the lowest-column warning as (1/N)')
+  assert(first.history == false, 'the warning echo must not enter :messages history')
+  assert(not find_text(before, 'an error'), 'an ERROR must never displace the warning echo')
+  assert(not find_text(before, 'a hint'), 'a HINT must never displace the warning echo')
+  assert(not find_text(before, '(1/3) tied warning'),
+    'warnings tied on col must keep vim.diagnostic.get order')
+
+  before = #echoes
+  move_to(2)
+  local single = find_text(before, 'only warning')
+  assert(single, 'a single warning must echo its message with no counter')
+  assert(single.history == false, 'the warning echo must not enter :messages history')
+  assert(not find_text(before, 'an info'), 'an INFO must never displace the warning echo')
+
+  before = #echoes
+  move_to(3)
+  local error_cleared = find_clear(before)
+  assert(error_cleared, 'an error-only line must clear the warning echo')
+  assert(error_cleared.history == false, 'the clearing echo must not enter :messages history')
+  assert(not find_text(before, 'lonely error'), 'an ERROR must never displace the warning echo')
+
+  before = #echoes
+  move_to(4)
+  assert(find_clear(before), 'a clean line must clear the warning echo')
+
+  before = #echoes
+  move_to(1)
+  before = #echoes
+  vim.api.nvim_exec_autocmds('CursorHold', {})
+  assert(find_text(before, '(1/3) first warning'), 'CursorHold must refresh the warning echo')
+
+  before = #echoes
+  vim.api.nvim_exec_autocmds('DiagnosticChanged', {})
+  assert(find_text(before, '(1/3) first warning'),
+    'DiagnosticChanged must refresh the warning echo even with no event data')
+
+  before = #echoes
+  vim.api.nvim_exec_autocmds('InsertEnter', {})
+  assert(find_clear(before), 'InsertEnter must clear the warning echo')
+
+  move_to(1)
+  before = #echoes
+  vim.api.nvim_exec_autocmds('BufLeave', {})
+  assert(find_clear(before), 'BufLeave must clear the warning echo')
+
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  before = #echoes
+  vim.fn.mode = function()
+    return 'i'
+  end
+  vim.api.nvim_exec_autocmds('CursorMoved', {})
+  vim.fn.mode = nil
+  assert(not find_text(before, '(1/3) first warning'),
+    'the warning echo must stay suppressed in insert mode')
+
+  local events = {}
+  for _, au in ipairs(vim.api.nvim_get_autocmds({ group = 'DiagnosticLineWarning' })) do
+    events[au.event] = true
+  end
+  local names = vim.tbl_keys(events)
+  table.sort(names)
+  assert(table.concat(names, ',') == 'BufLeave,CursorHold,CursorMoved,DiagnosticChanged,InsertEnter',
+    'the warning echo must bind exactly the refresh and clear events; got: ' .. table.concat(names, ','))
+
+  local multiline_ns = vim.api.nvim_create_namespace('smoke_diagnostic_multiline')
+  vim.diagnostic.set(multiline_ns, buf, {
+    { lnum = 3, col = 0, severity = severity.WARN, message = 'multi\nline warning' },
+  })
+  before = #echoes
+  move_to(4)
+  assert(find_text(before, 'multi line warning'),
+    'a multi-line warning must collapse onto one echo line')
+end
+
+local ok, err = xpcall(run, debug.traceback)
+vim.api.nvim_echo = real_echo
+vim.fn.mode = nil
+if not ok then
+  vim.api.nvim_err_writeln(err)
+  vim.cmd('cq')
+end
+LUA
+
 export NVIM_SMOKE_REPO="$REPO_DIR"
 
 echo "== smoke matrix =="
@@ -402,6 +600,9 @@ assert_not_eager gruvbox
 nvim_probe "Apollo is eager (loaded at startup)" +"lua $(loaded_lua nvim-apollo-theme)"
 nvim_probe "Apollo has priority = 1000" +"lua local p=require('lazy.core.config').plugins['nvim-apollo-theme']; if not (p and p.priority == 1000) then vim.cmd('cq') end"
 nvim_probe "Apollo is the active colorscheme" +"lua if vim.g.colors_name ~= 'apollo' then vim.cmd('cq') end"
+
+nvim_probe "diagnostics: virtual text on errors, underline from warnings, no signs" +"e README.md" +"lua dofile(vim.env.NVIM_SMOKE_DIAGNOSTIC_CONFIG)"
+nvim_probe "cursor-line warning echoes to the message area and clears" +"e README.md" +"lua dofile(vim.env.NVIM_SMOKE_DIAGNOSTIC_ECHO)"
 
 echo
 echo "== Intentionally eager (kept eager per user decision) =="
