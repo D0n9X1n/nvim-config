@@ -27,9 +27,7 @@ vim.diagnostic.config({
     severity = { min = vim.diagnostic.severity.ERROR },
   },
   signs = false,
-  underline = {
-    severity = { min = vim.diagnostic.severity.WARN },
-  },
+  underline = { severity = { min = vim.diagnostic.severity.WARN } },
   update_in_insert = false,
   severity_sort = true,
 })

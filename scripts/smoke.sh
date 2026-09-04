@@ -384,7 +384,7 @@ end
 
 local function find_clear(index)
   return find_since(index, function(entry)
-    return #entry.chunks == 1 and entry.chunks[1][1] == ''
+    return #entry.chunks == 0
   end)
 end
 

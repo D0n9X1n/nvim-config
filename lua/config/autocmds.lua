@@ -132,10 +132,11 @@ for _, filetype in ipairs({ 'c', 'cpp', 'java', 'go', 'php', 'javascript', 'pupp
   })
 end
 
+-- Echo the cursor line's warning diagnostic in the message area
 local diagnostic_warning_group = augroup('DiagnosticLineWarning', { clear = true })
 
 local function clear_line_warning()
-  vim.api.nvim_echo({ { '' } }, false, {})
+  vim.api.nvim_echo({}, false, {})
 end
 
 local function echo_line_warning()
