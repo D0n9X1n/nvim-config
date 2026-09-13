@@ -1,12 +1,12 @@
 # Neovim Configuration
 
 [![Latest Release](https://img.shields.io/github/v/release/D0n9X1n/nvim-config?style=flat-square&logo=github&label=release)](https://github.com/D0n9X1n/nvim-config/releases/latest)
-[![Neovim](https://img.shields.io/badge/Neovim-%E2%89%A50.10-57A143?style=flat-square&logo=neovim&logoColor=white)](https://neovim.io/)
+[![Neovim](https://img.shields.io/badge/Neovim-%E2%89%A50.12-57A143?style=flat-square&logo=neovim&logoColor=white)](https://neovim.io/)
 [![Lua](https://img.shields.io/badge/config-Lua-2C2D72?style=flat-square&logo=lua&logoColor=white)](https://github.com/D0n9X1n/nvim-config/tree/main/lua)
 [![License](https://img.shields.io/github/license/D0n9X1n/nvim-config?style=flat-square&label=license)](LICENSE)
 [![Last Commit](https://img.shields.io/github/last-commit/D0n9X1n/nvim-config?style=flat-square&logo=git&logoColor=white)](https://github.com/D0n9X1n/nvim-config/commits/main)
 
-A modern Neovim configuration ported from the original [m-vim](https://github.com/D0n9X1n/m-vim) setup.
+A modern Neovim configuration ported from the original [m-vim](https://github.com/D0n9X1n/m-vim.vimrc) setup.
 Written in Lua, managed by [lazy.nvim](https://github.com/folke/lazy.nvim).
 
 > **For Claude Code**: See [`CLAUDE.md`](CLAUDE.md) for repository operations and architecture.
@@ -23,7 +23,7 @@ Written in Lua, managed by [lazy.nvim](https://github.com/folke/lazy.nvim).
 
 ## Requirements
 
-- **Neovim** ≥ 0.10.0 (0.11+ recommended)
+- **Neovim** ≥ 0.12.0 (required starting with v1.0.0)
 - **Git**
 - A [Nerd Font](https://www.nerdfonts.com/) for icons
 
@@ -34,7 +34,7 @@ brew install ripgrep the_silver_searcher universal-ctags fzf
 npm install -g @olrtg/emmet-language-server   # for HTML/CSS Emmet
 ```
 
-Install language servers for the languages you use (e.g. `pyright`, `gopls`, `clangd`, `lua-language-server`).
+Install language servers for the languages you use (e.g. `pyright`, `gopls`, `clangd`, `lua-language-server`). UltiSnips and Gundo require a working Neovim Python 3 provider; check it with `:checkhealth vim.provider`.
 
 ## Installation
 
@@ -49,7 +49,15 @@ The installer will:
 3. Create `private.lua` if it doesn't exist
 4. Install optional tools via Homebrew
 
-On first launch, lazy.nvim auto-installs all plugins.
+Use `./install.sh --no-deps` to skip Homebrew installations. The installer honors `XDG_CONFIG_HOME`, replaces managed files only after backing up the existing configuration, and preserves both personal extension files.
+
+On first launch, lazy.nvim auto-installs plugins. Treesitter loads eagerly using its current API; language parsers are installed explicitly, not downloaded when opening files:
+
+```vim
+:TSInstall lua python javascript typescript
+```
+
+Parser installation requires a C compiler and `tree-sitter` CLI 0.26.1+ from your package manager (not npm), plus `tar` and `curl`. Files without a parser remain editable using their normal syntax and indentation.
 
 ### Manual
 
@@ -126,9 +134,13 @@ Leader key: **`,`** (comma)
 | Key | Action |
 |-----|--------|
 | `[b` / `]b` | Previous / next buffer |
-| `,q` | Close buffer (smart) |
+| `,q` | Close buffer; refuse unsaved changes; leave an empty buffer after the last file |
 | `<C-h/j/k/l>` | Navigate splits |
 | `<C-t>` | New tab |
+| `,tt` | Return to the previous tab |
+| `,t` | Open a terminal split |
+
+`,t` waits for the mapping timeout because `,tt` shares its prefix. `*` searches backward and `#` searches forward; both center the result.
 
 ### EasyMotion
 
@@ -152,8 +164,10 @@ Leader key: **`,`** (comma)
 
 | Key | Action |
 |-----|--------|
-| `,g` | Quick add, commit, pull & push |
+| `,gs` | Open Git status (Fugitive) |
 | `<F12>` | Toggle GitGutter |
+
+The former `,g` automatic commit/push and `,w` / `w!!` sudo-write mappings are removed. Commit and push explicitly; use an external privileged editing workflow when needed.
 
 ## Theme
 
@@ -210,14 +224,23 @@ Edit snippets with `,us` or `:UltiSnipsEdit`.
 ## Updating
 
 ```bash
-cd ~/.config/nvim && git pull
+git -C /path/to/nvim-config pull --ff-only
+/path/to/nvim-config/install.sh --no-deps
 ```
 
-Then `:Lazy sync` inside Neovim.
+Use the original checkout path, not the installer-created `~/.config/nvim` directory (which is not a Git checkout). For a manual clone directly at `~/.config/nvim`, that is your checkout path. Then run `:Lazy sync` inside Neovim.
+
+## Validation
+
+```bash
+bash scripts/smoke.sh
+```
+
+Requires Python 3 (including Neovim's Python provider), Neovim 0.12+, and the plugins already installed. Tests copy tracked public runtime files into a temporary config, omit private overrides, isolate data/state/cache and lockfiles, disable ShaDa, and refuse plugin/parser downloads. The matrix includes installer fixtures, harness failure controls, buffer/tab safety, Treesitter highlighting/indentation, and existing directory-startup/diagnostic checks. Missing test prerequisites fail explicitly.
 
 ## Credits
 
-- Original Vim config: [D0n9X1n/m-vim](https://github.com/D0n9X1n/m-vim)
+- Original Vim config: [D0n9X1n/m-vim.vimrc](https://github.com/D0n9X1n/m-vim.vimrc)
 - Plugin manager: [folke/lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ## License

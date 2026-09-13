@@ -1,324 +1,164 @@
 #!/bin/bash
+# Install public Neovim runtime files; keep local extension files unmanaged.
+set -euo pipefail
 
-# ====================================================================
-# Neovim Configuration Installer for macOS
-# Ported from m-vim
-# ====================================================================
+NO_DEPS=false
+for arg in "$@"; do
+    case "$arg" in
+        --no-deps) NO_DEPS=true ;;
+        -h|--help)
+            printf 'Usage: %s [--no-deps]\nRequires Neovim 0.12+.\n' "$0"
+            exit 0 ;;
+        *) printf 'Unknown option: %s\n' "$arg" >&2; exit 1 ;;
+    esac
+done
 
-set -e
-
-# Color output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-echo -e "${GREEN}================================${NC}"
-echo -e "${GREEN}Neovim Configuration Installer${NC}"
-echo -e "${GREEN}================================${NC}"
-echo ""
-
-# Check if Neovim is installed
-if ! command -v nvim &> /dev/null; then
-    echo -e "${RED}Error: Neovim is not installed${NC}"
-    echo "Please install Neovim first:"
-    echo "  brew install neovim"
+# Gate before mkdir, backup, symlink replacement, or dependency installation.
+if ! command -v nvim >/dev/null 2>&1; then
+    printf 'Error: Neovim 0.12+ is required; install Neovim first.\n' >&2
+    exit 1
+fi
+VERSION=$(nvim --version) || { printf 'Error: cannot query Neovim 0.12+ version.\n' >&2; exit 1; }
+if [[ ! "$VERSION" =~ ^NVIM\ v([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+    printf 'Error: cannot verify Neovim version; Neovim 0.12+ is required.\n' >&2
+    exit 1
+fi
+if (( 10#${BASH_REMATCH[1]} == 0 && 10#${BASH_REMATCH[2]} < 12 )); then
+    printf 'Error: Neovim 0.12+ is required; found %s.\n' "${VERSION%%$'\n'*}" >&2
     exit 1
 fi
 
-NVIM_VERSION=$(nvim --version | head -n1)
-NVIM_VERSION_NUM=$(echo "$NVIM_VERSION" | awk '{print $2}' | sed 's/^v//')
-IFS='.' read -r NVIM_MAJOR NVIM_MINOR NVIM_PATCH <<< "$NVIM_VERSION_NUM"
-echo -e "${GREEN}Found: ${NVIM_VERSION}${NC}"
-if [ "${NVIM_MAJOR:-0}" -eq 0 ] && [ "${NVIM_MINOR:-0}" -lt 11 ]; then
-    echo -e "${YELLOW}Warning: Neovim 0.11+ is recommended for this config.${NC}"
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+CONFIG_HOME=${XDG_CONFIG_HOME:-"$HOME/.config"}
+if [[ "$CONFIG_HOME" != /* ]]; then
+    printf 'Error: XDG_CONFIG_HOME must be an absolute path.\n' >&2
+    exit 1
 fi
-echo ""
-
-# Set up directories
-NVIM_CONFIG_DIR="${HOME}/.config/nvim"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PRIVATE_LUA="${NVIM_CONFIG_DIR}/lua/config/private.lua"
-
-# Backup existing config if it exists
-if [ -d "$NVIM_CONFIG_DIR" ]; then
-    BACKUP_DIR="${HOME}/.config/nvim.backup.$(date +%Y%m%d_%H%M%S)"
-    echo -e "${YELLOW}Backing up existing Neovim config...${NC}"
-    cp -r "$NVIM_CONFIG_DIR" "$BACKUP_DIR"
-    echo -e "${GREEN}✓ Backup created: ${BACKUP_DIR}${NC}"
-    echo ""
-else
-    echo -e "${YELLOW}No existing config found, creating new...${NC}"
-    mkdir -p "$NVIM_CONFIG_DIR"
-    echo ""
+NVIM_CONFIG_DIR="$CONFIG_HOME/nvim"
+if [[ -d "$NVIM_CONFIG_DIR" ]] && [[ $(cd -- "$NVIM_CONFIG_DIR" && pwd -P) == "$SCRIPT_DIR" ]]; then
+    printf 'Checkout is already the Neovim configuration; no links or backups needed.\n'
+    exit 0
 fi
 
-# Create symlinks for all files/folders (except private.lua)
-echo -e "${YELLOW}Setting up symlinks...${NC}"
+# Dependencies are optional, but preserve the existing auto-install behavior.
+# Check brew only if a package is actually missing, before changing the config.
+DEPENDENCIES=(rg fzf ag ctags python3)
+PACKAGES=(ripgrep fzf the_silver_searcher universal-ctags python3)
+if ! "$NO_DEPS"; then
+    for command in "${DEPENDENCIES[@]}"; do
+        if ! command -v "$command" >/dev/null 2>&1 && ! command -v brew >/dev/null 2>&1; then
+            printf 'Error: %s is missing and brew is unavailable. Install Homebrew or use --no-deps.\n' "$command" >&2
+            exit 1
+        fi
+    done
+fi
+
+# Dereference live links so backups survive changes to the old checkout/targets.
+# Keep dangling links as links. A depth limit rejects cycles before replacement.
+# All copying finishes before any existing configuration is modified.
+shopt -s dotglob nullglob
+snapshot() {
+    local src=$1 dst=$2 depth=$3 child ancestor
+    shift 3
+    if (( depth > 64 )); then
+        printf 'Error: config exceeds 64 directory levels: %s\n' "$src" >&2
+        return 1
+    fi
+    if [[ -d "$src" ]]; then
+        for ancestor in "$@"; do
+            if [[ "$src" -ef "$ancestor" ]]; then
+                printf 'Error: config contains a symlink cycle: %s\n' "$src" >&2
+                return 1
+            fi
+        done
+        mkdir -- "$dst" || return 1
+        for child in "$src"/*; do
+            snapshot "$child" "$dst/${child##*/}" "$((depth + 1))" "$@" "$src" || return 1
+        done
+    elif [[ -L "$src" && ! -e "$src" ]]; then
+        cp -Pp -- "$src" "$dst"
+    else
+        cp -Lp -- "$src" "$dst"
+    fi
+}
+
+RUNTIME=(init.lua UltiSnips lua/plugins lua/config/plugins)
+for item in "$SCRIPT_DIR/lua/config"/*.lua; do
+    case "${item##*/}" in
+        private.lua|private_config.lua) continue ;;
+    esac
+    RUNTIME+=("lua/config/${item##*/}")
+done
+NEEDS_LINKS=false
+for item in "${RUNTIME[@]}"; do
+    target="$NVIM_CONFIG_DIR/$item"
+    if [[ ! -L "$target" || $(readlink -- "$target") != "$SCRIPT_DIR/$item" ]]; then
+        NEEDS_LINKS=true
+    fi
+done
+for item in "$NVIM_CONFIG_DIR" "$NVIM_CONFIG_DIR/lua" "$NVIM_CONFIG_DIR/lua/config"; do
+    if [[ -L "$item" || ! -d "$item" ]]; then
+        NEEDS_LINKS=true
+    fi
+done
+
+mkdir -p -- "$CONFIG_HOME"
+BACKUP_DIR=''
+if "$NEEDS_LINKS" && [[ -e "$NVIM_CONFIG_DIR" || -L "$NVIM_CONFIG_DIR" ]]; then
+    BACKUP_DIR=$(mktemp -d "$CONFIG_HOME/nvim.backup.XXXXXX")
+    snapshot "$NVIM_CONFIG_DIR" "$BACKUP_DIR/config" 0
+    printf 'Backup created: %s/config\n' "$BACKUP_DIR"
+fi
+
+# Never traverse symlinked containers while modifying the installation. Restore
+# their independent snapshot locally, including both private extension files.
+local_directory() {
+    local target=$1 saved=$2
+    if [[ -L "$target" || ( -e "$target" && ! -d "$target" ) ]]; then
+        rm -- "$target"
+        if [[ -d "$saved" && ! -L "$saved" ]]; then
+            cp -Rp -- "$saved" "$target"
+        fi
+    fi
+    mkdir -p -- "$target"
+}
+local_directory "$NVIM_CONFIG_DIR" "$BACKUP_DIR/config"
+local_directory "$NVIM_CONFIG_DIR/lua" "$BACKUP_DIR/config/lua"
+local_directory "$NVIM_CONFIG_DIR/lua/config" "$BACKUP_DIR/config/lua/config"
 
 link_item() {
-    local src="$1"
-    local target="$2"
-    local name="$3"
-
-    if [ -L "$target" ]; then
-        rm "$target"
-        echo -e "${GREEN}✓ Updated symlink: ${name}${NC}"
-    elif [ ! -e "$target" ]; then
-        echo -e "${YELLOW}Linking ${name}...${NC}"
-    else
-        echo -e "${YELLOW}Skipping ${name} (already exists)${NC}"
+    local src=$1 target=$2
+    if [[ -L "$target" && $(readlink -- "$target") == "$src" ]]; then
         return
     fi
-
-    ln -s "$src" "$target"
+    # rm removes a leaf symlink itself, never its referenced file/directory.
+    if [[ -e "$target" || -L "$target" ]]; then
+        rm -rf -- "$target"
+    fi
+    ln -s -- "$src" "$target"
 }
 
-# Top-level items (except lua/ and private.lua)
-for item in "$SCRIPT_DIR"/*; do
-    item_name=$(basename "$item")
-    if [[ "$item_name" == .* ]]; then
-        continue
-    fi
-    if [ "$item_name" = "lua" ] || [ "$item_name" = "private.lua" ]; then
-        continue
-    fi
-    link_item "$item" "${NVIM_CONFIG_DIR}/${item_name}" "$item_name"
+for item in "${RUNTIME[@]}"; do
+    link_item "$SCRIPT_DIR/$item" "$NVIM_CONFIG_DIR/$item"
 done
 
-# lua/ with local lua/config/private.lua
-mkdir -p "${NVIM_CONFIG_DIR}/lua/config"
-for lua_item in "$SCRIPT_DIR/lua"/*; do
-    lua_name=$(basename "$lua_item")
-    if [ "$lua_name" = "config" ]; then
-        for cfg_item in "$lua_item"/*; do
-            cfg_name=$(basename "$cfg_item")
-            if [ "$cfg_name" = "private.lua" ]; then
-                continue
-            fi
-            link_item "$cfg_item" "${NVIM_CONFIG_DIR}/lua/config/${cfg_name}" "lua/config/${cfg_name}"
-        done
-    else
-        link_item "$lua_item" "${NVIM_CONFIG_DIR}/lua/${lua_name}" "lua/${lua_name}"
+# A dangling private symlink is still user-owned; never write through it.
+PRIVATE_LUA="$NVIM_CONFIG_DIR/lua/config/private.lua"
+if [[ ! -e "$PRIVATE_LUA" && ! -L "$PRIVATE_LUA" ]]; then
+    printf '%s\n' '-- Optional personal plugin specs. This file is never overwritten.' 'return {}' > "$PRIVATE_LUA"
+fi
+
+if ! "$NO_DEPS"; then
+    for i in "${!DEPENDENCIES[@]}"; do
+        if ! command -v "${DEPENDENCIES[$i]}" >/dev/null 2>&1; then
+            brew install "${PACKAGES[$i]}"
+        fi
+    done
+    if ! command -v clang++ >/dev/null 2>&1; then
+        printf 'Note: clang++ not found. Install Xcode command line tools with: xcode-select --install\n'
     fi
-done
-
-echo -e "${GREEN}Symlinks created${NC}"
-echo ""
-echo -e "${GREEN}UltiSnips snippets live in: ${NVIM_CONFIG_DIR}/UltiSnips${NC}"
-echo ""
-
-# Create private.lua only if it doesn't exist
-if [ ! -f "$PRIVATE_LUA" ]; then
-    echo -e "${YELLOW}Creating private.lua template...${NC}"
-    mkdir -p "$(dirname "$PRIVATE_LUA")"
-    
-    cat > "$PRIVATE_LUA" << 'EOF'
--- ====================================================================
--- Private Customizations & Optional Plugins
--- ====================================================================
--- 
--- This file is for YOUR customizations!
--- 
--- 1. Add optional plugins by returning a table
--- 2. Add custom keymaps
--- 3. Add custom settings
--- 4. Add custom autocommands
---
--- The file will NOT be overwritten on updates.
--- ====================================================================
-
--- ====================================================================
--- OPTIONAL PLUGINS
--- ====================================================================
---
--- To add optional plugins, uncomment and modify the return statement below.
--- Then restart Neovim and plugins will auto-install.
---
--- Example: Enable Wakatime (time tracking)
--- ====================================================================
-
-local optional_plugins = {
-  -- Wakatime - Time tracking for coding
-  -- Get API key from: https://wakatime.com/settings/account
-  -- { 'wakatime/vim-wakatime' },
-
-  -- Other optional plugins you might like:
-  -- { 'tpope/vim-eunuch' },           -- Unix shell commands
-  -- { 'numToStr/Comment.nvim' },      -- Better commenting
-  -- { 'mbbill/undotree' },            -- Visual undo history
-  -- { 'folke/todo-comments.nvim' },   -- Highlight TODO comments
-}
-
--- ====================================================================
--- CUSTOM KEYMAPS
--- ====================================================================
---
--- Example: Add custom keyboard shortcuts
--- ====================================================================
-
--- local map = vim.keymap.set
--- local opts = { noremap = true, silent = true }
---
--- -- Example: Map Ctrl+G to git status
--- map('n', '<C-g>', ':Gstatus<CR>', opts)
---
--- -- Example: Map leader + x to close buffer
--- map('n', '<leader>x', ':bdelete<CR>', opts)
-
--- ====================================================================
--- CUSTOM SETTINGS
--- ====================================================================
---
--- Example: Override default settings
--- ====================================================================
-
--- local opt = vim.opt
---
--- -- Example: Change tab width to 4 spaces
--- opt.tabstop = 4
--- opt.shiftwidth = 4
--- opt.softtabstop = 4
---
--- -- Example: Enable spell checking for markdown
--- -- vim.cmd('autocmd BufRead,BufNewFile *.md setlocal spell')
-
--- ====================================================================
--- CUSTOM AUTOCOMMANDS
--- ====================================================================
---
--- Example: Create custom auto-commands
--- ====================================================================
-
--- local augroup = vim.api.nvim_create_augroup
--- local autocmd = vim.api.nvim_create_autocmd
---
--- local my_group = augroup('MyCustomGroup', { clear = true })
---
--- -- Example: Auto-format on save for Python
--- autocmd('BufWritePre', {
---   group = my_group,
---   pattern = '*.py',
---   command = 'Autoformat',
--- })
---
--- -- Example: Set different tab width for YAML
--- autocmd('FileType', {
---   group = my_group,
---   pattern = 'yaml',
---   command = 'set ts=2 sw=2',
--- })
-
--- ====================================================================
--- WAKATIME CONFIGURATION (if enabled above)
--- ====================================================================
---
--- After enabling wakatime plugin, configure your API key:
--- ====================================================================
-
--- local g = vim.g
---
--- -- Option 1: Set API key directly (not recommended - expose your key)
--- -- g.wakatime_api_key = 'your-api-key-here'
---
--- -- Option 2: Use environment variable (RECOMMENDED)
--- -- Export in your shell: export WAKATIME_API_KEY='your-key'
--- -- The plugin will automatically read it
---
--- -- Optional settings:
--- g.wakatime_do_last_heartbeat = 1      -- Send heartbeat when editor closes
--- g.wakatime_cli_path = '/usr/local/bin/wakatime-cli'  -- Custom CLI path
-
--- ====================================================================
--- END OF CUSTOMIZATIONS
--- ====================================================================
-
-return optional_plugins
-EOF
-    echo -e "${GREEN}✓ Created private.lua${NC}"
-else
-    echo -e "${GREEN}✓ private.lua already exists (not overwriting)${NC}"
 fi
 
-echo ""
-
-# Snippets are already included in the package
-echo -e "${GREEN}✓ Snippets included: all.snippets, python.snippets, js.snippets, c.snippets, cpp.snippets, go.snippets, php.snippets${NC}"
-
-# Optional: Install optional dependencies
-echo -e "${YELLOW}Installing optional dependencies...${NC}"
-echo ""
-
-# Check and install ripgrep (for better CtrlP performance)
-if ! command -v rg &> /dev/null; then
-    echo "ripgrep not found. Installing..."
-    brew install ripgrep
-else
-    echo -e "${GREEN}✓ ripgrep already installed${NC}"
-fi
-
-# Check and install fzf (optional but useful)
-if ! command -v fzf &> /dev/null; then
-    echo "fzf not found. Installing..."
-    brew install fzf
-else
-    echo -e "${GREEN}✓ fzf already installed${NC}"
-fi
-
-# Check and install ag (the_silver_searcher)
-if ! command -v ag &> /dev/null; then
-    echo "the_silver_searcher not found. Installing..."
-    brew install the_silver_searcher
-else
-    echo -e "${GREEN}✓ the_silver_searcher already installed${NC}"
-fi
-
-# Check and install ctags
-if ! command -v ctags &> /dev/null; then
-    echo "ctags not found. Installing..."
-    brew install universal-ctags
-else
-    echo -e "${GREEN}✓ ctags already installed${NC}"
-fi
-
-# Check for Python and pip
-echo ""
-echo -e "${YELLOW}Checking Python installation (optional)...${NC}"
-
-if ! command -v python3 &> /dev/null; then
-    echo "Python 3 not found. Installing..."
-    brew install python3
-else
-    echo -e "${GREEN}✓ Python 3 already installed${NC}"
-fi
-
-# Optional: Install build tools for clangd (C/C++ language server)
-if ! command -v clang++ &> /dev/null; then
-    echo -e "${YELLOW}Note: clang++ not found. clangd-based C/C++ features may not work.${NC}"
-    echo "Install Xcode command line tools with: xcode-select --install"
-else
-    echo -e "${GREEN}✓ clang++ found${NC}"
-fi
-
-echo ""
-echo -e "${GREEN}================================${NC}"
-echo -e "${GREEN}Installation Complete!${NC}"
-echo -e "${GREEN}================================${NC}"
-echo ""
-echo "Configuration location: ${NVIM_CONFIG_DIR}"
-echo "Private customizations: ${PRIVATE_LUA}"
-echo ""
-echo "Next steps:"
-echo "1. Open Neovim: nvim"
-echo "2. Plugins will be automatically installed by lazy.nvim on first run"
-echo ""
-echo "Important notes:"
-echo "- Install language servers for the languages you use (e.g. clangd, pyright)"
-echo "- Some plugins may require additional setup"
-echo "- Review the README.md for configuration details"
-echo "- Edit private.lua to customize or add optional plugins"
-echo ""
-echo "Leader key is: comma (,)"
-echo ""
-echo "To uninstall, remove symlinks:"
-echo "  rm -rf ${NVIM_CONFIG_DIR}"
+printf 'Installation complete: %s\n' "$NVIM_CONFIG_DIR"
+printf 'Private customizations: lua/config/private.lua and lua/config/private_config.lua\n'
+printf 'Open nvim to install plugins. Leader key: comma (,).\n'

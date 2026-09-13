@@ -50,6 +50,8 @@ g.nerdtree_tabs_synchronize_focus = 1
 g.nerdtree_tabs_open_on_console_startup = 0
 g.nerdtree_tabs_open_on_gui_startup = 0
 
+g.gundo_prefer_python3 = 1
+
 -- Tagbar
 g.tagbar_autofocus = 1
 g.tagbar_width = 35

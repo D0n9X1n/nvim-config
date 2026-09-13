@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-This is a personal Lua-based Neovim configuration for Neovim 0.11+. `install.sh` symlinks the checkout into `~/.config/nvim`, so edits here can affect the user's active editor immediately. lazy.nvim is bootstrapped by `init.lua`; there is no application build or standalone linter.
+This is a personal Lua-based Neovim configuration for Neovim 0.12+. `install.sh` symlinks the checkout into `~/.config/nvim`, so edits here can affect the user's active editor immediately. lazy.nvim is bootstrapped by `init.lua`; there is no application build or standalone linter.
 
 ## Commands
 
@@ -13,13 +13,13 @@ This is a personal Lua-based Neovim configuration for Neovim 0.11+. `install.sh`
 bash scripts/smoke.sh
 
 # Syntax-check all tracked Lua entry points without loading the config
-nvim --headless -u NONE "+lua assert(loadfile('init.lua')); for _, f in ipairs(vim.fn.glob('lua/**/*.lua', false, true)) do assert(loadfile(f), f) end" +qa
+nvim --headless -u NONE -i NONE -n "+lua local ok,e=pcall(function() assert(loadfile('init.lua')); for _,f in ipairs(vim.fn.systemlist('git ls-files lua')) do assert(loadfile(f),f) end end); if not ok then print(e); vim.cmd('cquit 1') end" +qa
 
 # Focused single-file syntax check
-nvim --headless -u NONE "+lua assert(loadfile('lua/config/theme.lua'))" +qa
+nvim --headless -u NONE -i NONE -n "+lua if not loadfile('lua/config/theme.lua') then vim.cmd('cquit 1') end" +qa
 
 # Focused runtime assertion against the installed/live config
-nvim --headless "+lua assert(vim.g.colors_name == 'apollo')" +qa
+nvim --headless "+lua if vim.g.colors_name ~= 'apollo' then vim.cmd('cquit 1') end" +qa
 
 # Install, update, and remove plugins to match the spec
 nvim --headless "+Lazy! sync" +qa
@@ -28,7 +28,7 @@ nvim --headless "+Lazy! sync" +qa
 nvim --headless --startuptime /tmp/nvim-startup.log +qa
 ```
 
-`scripts/smoke.sh` is the must-pass test. It mounts this checkout as a temporary Neovim config, uses the existing lazy.nvim installation, and deliberately refuses to install missing plugins. There is no unit-test runner with a test-name filter; use a focused headless assertion for one behavior.
+`scripts/smoke.sh` is the must-pass test (Python 3 and installed plugins required). It copies tracked public runtime files into a temporary config, excludes private extensions, isolates state/cache/data and lockfiles, disables ShaDa, and refuses missing plugin/parser installation. It runs installer fixtures, error-detection negative controls, and functional keymap/Treesitter/directory/diagnostic regressions. Plugins are read from the existing installation. Headless Neovim can exit zero after Lua errors: use explicit `cquit` on assertion failure, or the smoke probe wrapper, rather than trusting `+qa` alone.
 
 For interactive diagnosis, use `:checkhealth`, `:Lazy`, and `:LspInfo`.
 
@@ -36,7 +36,7 @@ For interactive diagnosis, use `:checkhealth`, `:Lazy`, and `:LspInfo`.
 
 `init.lua` is the composition root. Its order is significant:
 
-1. Set both leader keys to `,`.
+1. Reject Neovim older than 0.12, then set both leader keys to `,`.
 2. Load `config.settings`, `config.keymaps`, `config.autocmds`, then legacy Vimscript-plugin globals from `config.plugins.config`.
 3. Bootstrap lazy.nvim and import the plugin specs from `lua/plugins/init.lua`.
 4. Merge optional specs returned by gitignored `config.private`.
@@ -51,6 +51,8 @@ Plugin declarations and configuration are intentionally split:
 - `UltiSnips/` contains the bundled language snippet sources.
 
 The default theme is `apollo-theme/nvim-apollo-theme`, which must stay eager with priority `1000`; `lua/config/theme.lua` activates `apollo` and applies project-specific highlight overrides. Neo-tree is also eager because it owns directory startup. Bufferline, lualine, and UltiSnips are deliberately eager; the smoke matrix protects these decisions and the Neo-tree/Bufferline directory-startup behavior.
+
+Treesitter is eager on its explicit `main` branch and uses the Neovim 0.12 API. Parsers are installed explicitly with `:TSInstall`; startup never downloads them. Bundled parser queries fall back to the plugin's `runtime` directory. Smoke tests assert actual highlight captures and reindentation, not just plugin load state.
 
 LSP setup in `lua/config/plugins/lsp.lua` uses the Neovim 0.11 `vim.lsp.config`/`vim.lsp.enable` API. `setup_if_executable` skips servers whose binaries are absent. TypeScript and JavaScript are handled separately by `typescript-tools.nvim`.
 
