@@ -4,6 +4,11 @@
 -- Email: D0n9x1n@outlook.com
 -- ====================================================================
 
+-- Check before loading config or bootstrapping plugins.
+if vim.fn.has('nvim-0.12') ~= 1 then
+  error('This configuration requires Neovim 0.12 or later')
+end
+
 -- Leader key
 vim.g.mapleader = ","
 vim.g.maplocalleader = ","

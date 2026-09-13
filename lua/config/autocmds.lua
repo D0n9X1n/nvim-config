@@ -8,6 +8,14 @@ local autocmd = vim.api.nvim_create_autocmd
 -- General autocmds
 local general_group = augroup('General', { clear = true })
 
+-- Store the departing tab's stable handle, not its changing tab number.
+autocmd('TabLeave', {
+  group = general_group,
+  callback = function()
+    vim.g.last_active_tab = vim.api.nvim_get_current_tabpage()
+  end,
+})
+
 -- Leave Insert mode -> always disable paste mode
 autocmd('InsertLeave', {
   group = general_group,
@@ -92,13 +100,6 @@ autocmd({ 'BufRead', 'BufNewFile' }, {
   group = filetype_group,
   pattern = '*.part',
   command = 'set filetype=html',
-})
-
--- Emmet for HTML/CSS
-autocmd('FileType', {
-  group = filetype_group,
-  pattern = 'html,css',
-  command = 'EmmetInstall',
 })
 
 -- Python # handling

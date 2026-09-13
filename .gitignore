@@ -1,5 +1,6 @@
 # Private customizations - DO NOT commit
 lua/config/private.lua
+lua/config/private_config.lua
 
 # Lazy.nvim plugin manager
 .lazy/

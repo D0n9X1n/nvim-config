@@ -25,12 +25,41 @@ local function set_bg_color()
 end
 
 local function close_buffer_smart()
-  local bufs = vim.fn.getbufinfo({ buflisted = 1 })
-  if #bufs == 1 then
-    vim.cmd('enew')
-  else
-    vim.cmd('bnext | bdelete #')
+  local original = vim.api.nvim_get_current_buf()
+  if vim.bo[original].modified then
+    vim.notify('Buffer has unsaved changes; save it before closing.', vim.log.levels.WARN)
+    return
   end
+
+  local bufs = vim.fn.getbufinfo({ buflisted = 1 })
+  if #bufs == 1 and bufs[1].bufnr == original
+      and vim.api.nvim_buf_get_name(original) == ''
+      and vim.bo[original].buftype == ''
+      and vim.api.nvim_buf_line_count(original) == 1
+      and vim.api.nvim_buf_get_lines(original, 0, 1, false)[1] == '' then
+    return
+  end
+
+  -- Match :bnext's buffer-number order, wrapping to the first listed buffer.
+  local replacement
+  for _, buf in ipairs(bufs) do
+    if buf.bufnr ~= original then
+      replacement = replacement or buf.bufnr
+      if buf.bufnr > original then
+        replacement = buf.bufnr
+        break
+      end
+    end
+  end
+  replacement = replacement or vim.api.nvim_create_buf(true, false)
+
+  -- Replace every view first so deletion cannot close same-buffer splits.
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_get_buf(win) == original then
+      vim.api.nvim_win_set_buf(win, replacement)
+    end
+  end
+  vim.api.nvim_buf_delete(original, { force = false })
 end
 
 -- Disable vertical arrow keys in normal mode
@@ -92,16 +121,12 @@ map('v', '/', '/\\v', opts)
 -- Keep search result centered
 map('n', 'n', 'nzz', opts)
 map('n', 'N', 'Nzz', opts)
-map('n', '*', '*zz', opts)
-map('n', '#', '#zz', opts)
+map('n', '*', '#zz', opts)
+map('n', '#', '*zz', opts)
 map('n', 'g*', 'g*zz', opts)
 
 -- Clear search highlight
 map('n', '<leader>/', ':nohls<CR>', opts)
-
--- Swap * and #
-map('n', '#', '*', opts)
-map('n', '*', '#', opts)
 
 -- Buffer navigation
 map('n', '[b', ':bprevious<CR>', opts)
@@ -111,9 +136,11 @@ map('n', '<Right>', ':BufferLineCycleNext<CR>', opts)
 map('n', '<leader>q', function() close_buffer_smart() end, { silent = true })
 
 -- Tab navigation
-vim.g.last_active_tab = 1
 map('n', '<leader>tt', function()
-  vim.cmd('tabnext ' .. vim.g.last_active_tab)
+  local previous = vim.g.last_active_tab
+  if previous and vim.api.nvim_tabpage_is_valid(previous) then
+    vim.api.nvim_set_current_tabpage(previous)
+  end
 end, { silent = true })
 map('n', '<C-t>', ':tabnew<CR>', opts)
 map('i', '<C-t>', '<Esc>:tabnew<CR>', opts)
@@ -128,9 +155,6 @@ map('n', 'Y', 'y$', opts)
 -- Select all
 map('n', '<Leader>sa', 'ggVG', opts)
 
--- Write file using sudo when needed
-map('c', 'w!!', 'w !sudo tee >/dev/null %', opts)
-
 -- kj as <Esc> in insert mode
 map('i', 'kj', '<Esc>', opts)
 
@@ -140,9 +164,6 @@ map('n', '<C-y>', '2<C-y>', opts)
 
 -- Fold current indent
 map('n', '<leader>z', 'za', opts)
-
--- Force save with sudo
-map('n', '<leader>w', ':w !sudo tee >/dev/null %<CR>', opts)
 
 -- Swap ' and ` to make jumps easier
 map('n', "'", '`', opts)
@@ -159,7 +180,6 @@ map('n', '<leader>m', ':MarkdownPreviewToggle<CR>', opts)
 map('n', '<leader>t', ':split | terminal<CR>', opts)
 map('n', '<F9>', ':TagbarToggle<CR>', opts)
 map('n', '<leader>us', ':UltiSnipsEdit<CR>', opts)
-map('n', '<leader>tt', ':split | terminal<CR>', opts)
 map('n', '<leader>jd', function() vim.lsp.buf.definition() end, opts)
 map('n', '<leader>gd', function() vim.lsp.buf.declaration() end, opts)
 map('n', '<leader>ee', function() vim.diagnostic.open_float() end, opts)
@@ -189,7 +209,7 @@ map('n', '<leader><leader>l', '<Plug>(easymotion-lineforward)', opts)
 map('n', '<leader><leader>.', '<Plug>(easymotion-repeat)', opts)
 
 -- Git helper
-map('n', '<leader>g', ':!git add . && git commit -am "%" && git pull origin master && git push origin master<CR>', opts)
+map('n', '<leader>gs', ':Git status<CR>', opts)
 
 -- Command-line enhancements
 map('c', '<C-j>', '<t_kd>', opts)

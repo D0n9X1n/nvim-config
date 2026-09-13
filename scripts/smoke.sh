@@ -6,17 +6,38 @@ cd "$(dirname "$0")/.."
 REPO_DIR=$PWD
 SMOKE_TMP=$(mktemp -d /tmp/nvim-smoke.XXXXXX)
 trap 'rm -rf "$SMOKE_TMP"' EXIT
-export TMPDIR="$SMOKE_TMP/tmp"
-mkdir -p "$TMPDIR"
-XDG_CONFIG_HOME="$SMOKE_TMP/config"
-mkdir -p "$XDG_CONFIG_HOME"
-ln -s "$REPO_DIR" "$XDG_CONFIG_HOME/nvim"
-
-LAZY_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/lazy/lazy.nvim"
-if [ ! -d "$LAZY_DIR" ]; then
-  printf 'lazy.nvim is not installed at %s; refusing to install during smoke tests\n' "$LAZY_DIR" >&2
+export NVIM_SMOKE_LAZY_SOURCE="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/lazy"
+if [ ! -d "$NVIM_SMOKE_LAZY_SOURCE/lazy.nvim" ]; then
+  printf 'lazy.nvim is not installed at %s; refusing to install during smoke tests\n' "$NVIM_SMOKE_LAZY_SOURCE" >&2
   exit 1
 fi
+export TMPDIR="$SMOKE_TMP/tmp"
+export XDG_CONFIG_HOME="$SMOKE_TMP/config"
+export XDG_DATA_HOME="$SMOKE_TMP/data"
+export XDG_STATE_HOME="$SMOKE_TMP/state"
+export XDG_CACHE_HOME="$SMOKE_TMP/cache"
+export NVIM_SMOKE_REPO="$REPO_DIR"
+export NVIM_SMOKE_PUBLIC_CONFIG="$XDG_CONFIG_HOME/nvim"
+mkdir -p "$TMPDIR" "$XDG_CONFIG_HOME/nvim" "$XDG_DATA_HOME/nvim/lazy" "$XDG_STATE_HOME" "$XDG_CACHE_HOME"
+python3 - <<'PY'
+import os
+import pathlib
+import shutil
+import subprocess
+
+repo = pathlib.Path(os.environ['NVIM_SMOKE_REPO'])
+config = pathlib.Path(os.environ['NVIM_SMOKE_PUBLIC_CONFIG'])
+for name in subprocess.check_output(['git', 'ls-files', '-z', 'init.lua', 'lua', 'UltiSnips'], text=True).split('\0'):
+    if not name or pathlib.Path(name).name in ('private.lua', 'private_config.lua'):
+        continue
+    target = config / name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(repo / name, target)
+plugins = pathlib.Path(os.environ['XDG_DATA_HOME']) / 'nvim/lazy'
+for source in pathlib.Path(os.environ['NVIM_SMOKE_LAZY_SOURCE']).iterdir():
+    if source.is_dir():
+        (plugins / source.name).symlink_to(source, target_is_directory=True)
+PY
 
 export NVIM_SMOKE_NO_INSTALL="$SMOKE_TMP/no-install.lua"
 cat > "$NVIM_SMOKE_NO_INSTALL" <<'LUA'
@@ -29,6 +50,11 @@ lazy.setup = function(spec, options)
   options = options or {}
   options.install = options.install or {}
   options.install.missing = false
+  options.checker = { enabled = false }
+  options.change_detection = { enabled = false }
+  options.lockfile = vim.fn.stdpath('config') .. '/lazy-lock.json'
+  options.root = vim.env.NVIM_SMOKE_LAZY_SOURCE
+  options.pkg = { enabled = false }
   return setup(spec, options)
 end
 LUA
@@ -37,12 +63,10 @@ PASS=0; FAIL=0
 ok()  { printf '  \033[32mPASS\033[0m %s\n' "$*"; PASS=$((PASS+1)); }
 bad() { printf '  \033[31mFAIL\033[0m %s\n' "$*"; FAIL=$((FAIL+1)); }
 
-# Run nvim headless with a Lua predicate. Predicate must call
-# vim.cmd('cq') to fail. Returns 0 on pass, non-zero on fail.
 nvim_probe() {
   local desc="$1"; shift
   local output
-  if output=$(XDG_CONFIG_HOME="$XDG_CONFIG_HOME" nvim --headless --cmd "lua dofile(vim.env.NVIM_SMOKE_NO_INSTALL)" "$@" +qa 2>&1); then
+  if output=$(python3 "$REPO_DIR/scripts/smoke-probe.py" "$@" 2>&1); then
     ok "$desc"
   else
     bad "$desc"
@@ -61,9 +85,9 @@ not_loaded_lua() {
 }
 
 assert_not_eager()       { nvim_probe "$1 not eager"            +"lua $(not_loaded_lua "$1")"; }
-assert_loads_on_ft()     { nvim_probe "$1 loads on ft=$2"       +"silent! e scratch.$2" +"lua $(loaded_lua "$1")"; }
+assert_loads_on_ft()     { nvim_probe "$1 loads on ft=$2"       +"e scratch.$2" +"lua $(loaded_lua "$1")"; }
 assert_loads_on_ft_explicit() { nvim_probe "$1 loads on ft=$2" +"e scratch" +"set filetype=$2" +"lua $(loaded_lua "$1")"; }
-assert_loads_on_cmd()    { nvim_probe "$1 loads on :$2"         +"silent! $2"   +"lua $(loaded_lua "$1")"; }
+assert_loads_on_cmd()    { nvim_probe "$1 loads on :$2"         +"$2"   +"lua $(loaded_lua "$1")"; }
 assert_loads_on_event()  { nvim_probe "$1 loads on $2"          +"doautocmd $2" +"lua $(loaded_lua "$1")"; }
 assert_loads_on_insert() { nvim_probe "$1 loads on InsertEnter" +"doautocmd InsertEnter"  +"lua $(loaded_lua "$1")"; }
 
@@ -232,6 +256,18 @@ local function run()
   end, 10), 'opening the first file must leave only that file listed; got ' .. listed_buffer_summary())
 
   if case == 'first_file' then
+    return
+  end
+
+  if case == 'close_last' then
+    local original = vim.api.nvim_get_current_buf()
+    local windows = vim.api.nvim_tabpage_list_wins(0)
+    vim.api.nvim_feedkeys(',q', 'xt', false)
+    assert(vim.fn.buflisted(original) == 0, 'closing the last file must unlist it')
+    assert(vim.api.nvim_buf_get_name(0) == '', 'closing the last file must leave an unnamed buffer')
+    assert(#listed_buffers() == 1, 'closing the last file must leave one listed buffer')
+    assert(vim.deep_equal(vim.api.nvim_tabpage_list_wins(0), windows), 'closing a file must preserve windows')
+    assert_tree_persisted()
     return
   end
 
@@ -514,7 +550,14 @@ LUA
 
 export NVIM_SMOKE_REPO="$REPO_DIR"
 
+python3 "$REPO_DIR/scripts/smoke-probe.py" --self-test
+python3 "$REPO_DIR/scripts/installer-regression.py"
+for private in private.lua private_config.lua; do
+  git check-ignore -q "lua/config/$private"
+done
+
 echo "== smoke matrix =="
+nvim_probe "safe mappings, buffers, splits, previous tabs" +"lua dofile(vim.env.NVIM_SMOKE_REPO .. '/scripts/keymaps-regression.lua')"
 # rows are appended by later tasks (insert above this marker)
 assert_not_eager typescript-vim
 assert_not_eager vim-javascript
@@ -534,8 +577,8 @@ assert_not_eager nvim-lspconfig
 nvim_probe "nvim-lspconfig loads on BufReadPre" +"e README.md" +"lua $(loaded_lua nvim-lspconfig)"
 assert_not_eager nvim-cmp
 assert_loads_on_insert nvim-cmp
-assert_not_eager nvim-treesitter
-nvim_probe "nvim-treesitter loads on BufReadPost" +"e README.md" +"lua $(loaded_lua nvim-treesitter)"
+nvim_probe "nvim-treesitter is eager on main" +"lua $(loaded_lua nvim-treesitter)"
+nvim_probe "Treesitter highlights and indents Lua, tolerates missing parsers" +"lua dofile(vim.env.NVIM_SMOKE_REPO .. '/scripts/treesitter-regression.lua')"
 assert_not_eager delimitMate
 assert_loads_on_insert delimitMate
 assert_not_eager closetag.vim
@@ -566,7 +609,7 @@ for p in tagbar vim-trailing-whitespace vim-easygrep ag.vim; do
 done
 assert_loads_on_cmd tagbar TagbarOpen
 assert_loads_on_cmd vim-trailing-whitespace FixWhitespace
-assert_loads_on_cmd vim-easygrep            GrepBuffer
+assert_loads_on_cmd vim-easygrep            "GrepRoot ."
 assert_loads_on_cmd ag.vim                  "AgFromSearch"
 assert_not_eager ctrlsf.vim
 assert_loads_on_cmd ctrlsf.vim CtrlSFToggle
@@ -576,6 +619,7 @@ nvim_probe "neo-tree.nvim is eager (directory hijack ready at startup)" +"lua $(
 nvim_probe "Bufferline formatter and indicator keep stable width" +"lua dofile(vim.env.NVIM_SMOKE_BUFFERLINE_CONFIG)"
 nvim_probe "nvim <directory> settles to one persistent Neo-tree" "$REPO_DIR" +"let g:smoke_case='startup'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 nvim_probe "opening first Neo-tree file preserves tree and listed buffers" "$REPO_DIR" +"let g:smoke_case='first_file'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
+nvim_probe "closing last file preserves real Neo-tree and editor windows" "$REPO_DIR" +"let g:smoke_case='close_last'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 nvim_probe "Bufferline arrows cycle real files with stable layout" "$REPO_DIR" +"let g:smoke_case='bufferline'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 assert_not_eager vim-fugitive
 assert_loads_on_cmd vim-fugitive "Git status"

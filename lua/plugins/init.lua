@@ -6,9 +6,14 @@ return {
   -- Language Support
   {
     'nvim-treesitter/nvim-treesitter',
+    branch = 'main',
+    lazy = false,
     build = ':TSUpdate',
-    event = { 'BufReadPost', 'BufNewFile' },
-    config = function()
+    config = function(plugin)
+      -- Main normally links these queries during parser installation. Make them
+      -- available for bundled parsers too, without writing to the install dir.
+      -- Append as a fallback so user and installed queries retain precedence.
+      vim.opt.runtimepath:append(plugin.dir .. '/runtime')
       require('config.plugins.treesitter')
     end,
   },
@@ -78,7 +83,7 @@ return {
   { 'majutsushi/tagbar', cmd = { 'TagbarToggle', 'TagbarOpen', 'Tagbar' } },
   { 'bronson/vim-trailing-whitespace', cmd = 'FixWhitespace' },
 
-  { 'dkprice/vim-easygrep', cmd = { 'Grep', 'GrepRoot', 'GrepBuffer', 'Replace', 'ReplaceUndo' } },
+  { 'dkprice/vim-easygrep', cmd = { 'Grep', 'GrepAdd', 'GrepOptions', 'GrepProgram', 'GrepRoot', 'Replace', 'ReplaceUndo' } },
   { 'rking/ag.vim', cmd = { 'Ag', 'AgAdd', 'AgFromSearch' } },
 
   -- Completion & Snippets
