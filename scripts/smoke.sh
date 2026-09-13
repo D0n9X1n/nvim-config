@@ -33,6 +33,10 @@ for name in subprocess.check_output(['git', 'ls-files', '-z', 'init.lua', 'lua',
     target = config / name
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(repo / name, target)
+if os.environ.get('NVIM_SMOKE_BUFFERLINE_SOURCE'):
+    import json
+    spec = config / 'lua/plugins/init.lua'
+    spec.write_text(spec.read_text().replace("'MOSconfig/bufferline.nvim',", "'MOSconfig/bufferline.nvim', dir = " + json.dumps(os.environ['NVIM_SMOKE_BUFFERLINE_SOURCE']) + ','))
 plugins = pathlib.Path(os.environ['XDG_DATA_HOME']) / 'nvim/lazy'
 for source in pathlib.Path(os.environ['NVIM_SMOKE_LAZY_SOURCE']).iterdir():
     if source.is_dir():
@@ -106,6 +110,72 @@ local function run()
 
   assert(options.indicator.style == 'icon', 'Bufferline indicator must use icon style')
   assert(options.indicator.icon == ' ', 'Bufferline indicator must reserve one invisible column')
+  assert(vim.tbl_isempty(options.offsets or {}), 'Bufferline header must not reserve repeated Explorer space')
+  assert(options.tab_size == 16 and options.enforce_regular_tabs, 'Buffer tabs must retain configurable width 16')
+  assert(options.truncate_names, 'Long buffer titles must be truncated')
+  assert(not options.show_buffer_close_icons, 'Buffer tabs must not show close buttons')
+  assert(options.separator_style == 'slope', 'Buffer tabs must use the local sloped default')
+  local function selected_colors()
+    local selected = vim.api.nvim_get_hl(0, { name = 'BufferLineBufferSelected', link = false })
+    local background = vim.api.nvim_get_hl(0, { name = 'BufferLineBackground', link = false })
+    assert(selected.bg == 0x365b80 and selected.fg == 0xffffff and selected.bold, 'Active tab must have a contrasting background')
+    assert(selected.bg ~= background.bg, 'Active and inactive tabs must be distinguishable')
+    local normal = vim.api.nvim_get_hl(0, { name = 'Normal', link = false }).bg
+    for _, name in ipairs({ 'BufferLineFill', 'BufferLineBackground', 'BufferLineBufferVisible' }) do
+      assert(vim.api.nvim_get_hl(0, { name = name, link = false }).bg == normal, 'Inactive header areas must match the editor background')
+    end
+  end
+  selected_colors()
+  vim.cmd.colorscheme('apollo')
+  selected_colors()
+  local closed = vim.api.nvim_create_buf(true, false)
+  options.close_command(closed)
+  assert(vim.fn.buflisted(closed) == 0, 'Close action must delete the requested clean buffer')
+  local dirty = vim.api.nvim_create_buf(true, false)
+  vim.api.nvim_buf_set_lines(dirty, 0, -1, false, { 'unsaved text' })
+  local notify, warning = vim.notify, nil
+  vim.notify = function(message) warning = message end
+  options.close_command(dirty)
+  vim.notify = notify
+  assert(warning and vim.api.nvim_buf_is_valid(dirty), 'Close action must refuse unsaved changes')
+  assert(vim.api.nvim_buf_get_lines(dirty, 0, 1, false)[1] == 'unsaved text', 'Close action must preserve dirty text')
+  vim.bo[dirty].modified = false
+  options.close_command(dirty)
+
+  local api = vim.api
+  local editor, original = api.nvim_get_current_win(), api.nvim_get_current_buf()
+  local opened = api.nvim_create_buf(true, false)
+  api.nvim_buf_set_name(opened, '/tmp/smoke-opened-buffer.txt')
+  api.nvim_win_set_buf(editor, opened)
+  vim.cmd('vsplit')
+  local second = api.nvim_get_current_win()
+  vim.cmd('tab split')
+  local other_tab = api.nvim_get_current_win()
+  local windows = api.nvim_list_wins()
+  options.close_command(opened)
+  assert(vim.fn.buflisted(opened) == 0, 'Close action must remove an open buffer')
+  local replacement = api.nvim_win_get_buf(editor)
+  for _, win in ipairs({ editor, second, other_tab }) do
+    assert(api.nvim_win_is_valid(win) and api.nvim_win_get_buf(win) == replacement, 'Close action must preserve every split across tabs')
+  end
+  assert(#windows == #api.nvim_list_wins(), 'Close action must not remove windows')
+  local locked = api.nvim_create_buf(true, false)
+  api.nvim_win_set_buf(second, locked)
+  vim.wo[second].winfixbuf = true
+  local old_notify, refused = vim.notify, false
+  vim.notify = function() refused = true end
+  options.close_command(locked)
+  vim.notify = old_notify
+  assert(refused and api.nvim_win_get_buf(second) == locked and vim.fn.buflisted(locked) == 1, 'Locked views must be refused before modifying any window')
+  vim.wo[second].winfixbuf = false
+  options.close_command(locked)
+  local hidden = api.nvim_create_buf(true, false)
+  options.close_command(hidden)
+  assert(api.nvim_win_get_buf(editor) == replacement, 'Closing hidden buffers must not switch the editor')
+  vim.cmd('tabclose')
+  api.nvim_set_current_win(editor)
+  api.nvim_win_close(second, false)
+  api.nvim_win_set_buf(editor, original)
 end
 
 local ok, err = xpcall(run, debug.traceback)
@@ -113,6 +183,194 @@ if not ok then
   vim.api.nvim_err_writeln(err)
   vim.cmd('cq')
 end
+LUA
+
+export NVIM_SMOKE_SEARCH="$SMOKE_TMP/search-regression.lua"
+cat > "$NVIM_SMOKE_SEARCH" <<'LUA'
+local child = vim.fn.jobstart({ vim.v.progpath, '--embed', '--headless', '-i', 'NONE', '-n',
+  '--cmd', 'lua dofile(vim.env.NVIM_SMOKE_NO_INSTALL)' }, {
+  rpc = true,
+  env = { NVIM_RPLUGIN_MANIFEST = vim.env.NVIM_SMOKE_LAZY_SOURCE .. '/../rplugin.vim' },
+})
+local function lua(code) return vim.fn.rpcrequest(child, 'nvim_exec_lua', code, {}) end
+local function input(keys)
+  vim.fn.rpcrequest(child, 'nvim_input', keys)
+end
+local ok, err = xpcall(function()
+  assert(child > 0)
+  lua("assert(not require('lazy.core.config').plugins['ag.vim']._.loaded)")
+  for attempt = 1, 2 do
+    input(',s')
+    assert(vim.wait(3000, function() return lua("return vim.fn.getcmdline() == 'Ag '") end, 20), 'Search input missing')
+    lua("assert(vim.api.nvim_get_commands({}).Ag.complete == 'file'); vim.wait(600)")
+    local messages = lua("return vim.api.nvim_exec2('messages', { output = true }).output")
+    assert(not messages:find('E704', 1, true) and not messages:find('E714', 1, true), messages)
+    input('search-regression-query')
+    assert(vim.wait(3000, function() return lua("return vim.fn.getcmdline() == 'Ag search-regression-query'") end, 20), 'Search input is not editable')
+    input('<Esc>')
+    assert(vim.wait(1000, function() return lua("return vim.api.nvim_get_mode().mode == 'n'") end, 20))
+  end
+  input(',sfast-query')
+  assert(vim.wait(3000, function() return lua("return vim.fn.getcmdline() == 'Ag fast-query'") end, 20), 'Fast query must follow the command prefix')
+  input('<Esc>')
+  lua("assert(not vim.bo.modified)")
+  lua([=[
+    local api = vim.api
+    local runtime = require('bufferline.multiline.runtime')
+    local editor, original = api.nvim_get_current_win(), api.nvim_get_current_buf()
+    api.nvim_buf_set_name(original, vim.env.TMPDIR .. '/search-editor.txt')
+    runtime.flush('test')
+    local header = runtime.handles()[api.nvim_get_current_tabpage()].win
+    vim.fn.setqflist({ { bufnr = original, lnum = 1, text = 'search result' } })
+    vim.cmd('botright copen')
+    local results = api.nvim_get_current_buf()
+    assert(vim.bo[results].buftype == 'quickfix' and not vim.bo[results].buflisted)
+    assert(vim.tbl_contains(require('lualine').get_config().options.ignore_focus, 'qf'), 'Results must not replace editor statusline context')
+    runtime.flush('test')
+    local h = runtime.handles()[api.nvim_get_current_tabpage()]
+    assert(h.editor == editor and h.win == header, 'Results must not become the header editor')
+    for _, component in ipairs(h.frame.visible_components) do assert(component.id ~= results) end
+    vim.cmd('cclose')
+    runtime.flush('test')
+    assert(api.nvim_win_is_valid(editor) and api.nvim_win_get_buf(editor) == original)
+    assert(runtime.owns(header) and vim.o.showtabline == 0)
+  ]=])
+end, debug.traceback)
+if child > 0 then vim.fn.jobstop(child) end
+assert(ok, err)
+LUA
+
+export NVIM_SMOKE_EMPTY_BUFFER="$SMOKE_TMP/empty-buffer-regression.lua"
+cat > "$NVIM_SMOKE_EMPTY_BUFFER" <<'LUA'
+local api = vim.api
+local function blank(lines, modified)
+  local buf = api.nvim_create_buf(true, false)
+  if lines then api.nvim_buf_set_lines(buf, 0, -1, false, lines) end
+  if modified ~= nil then vim.bo[buf].modified = modified end
+  return buf
+end
+local function open_file()
+  local buf = api.nvim_create_buf(true, false)
+  api.nvim_buf_set_name(buf, vim.fn.tempname() .. '.txt')
+  api.nvim_set_current_buf(buf)
+  vim.wait(80)
+  return buf
+end
+local empty = blank()
+local dirty = blank({ 'unsaved' })
+local content = blank({ 'keep even when marked clean' }, false)
+local whitespace = blank({ ' ' }, false)
+local scratch = api.nvim_create_buf(false, true)
+local displayed = blank()
+api.nvim_set_current_buf(displayed)
+vim.cmd('vsplit')
+local file = open_file()
+assert(vim.fn.buflisted(empty) == 0, 'Opening a file must remove hidden empty unnamed buffers')
+for _, buf in ipairs({ dirty, content, whitespace, displayed, scratch }) do
+  assert(api.nvim_buf_is_valid(buf), 'Must preserve text, displayed buffers and scratch buffers')
+end
+assert(vim.bo[dirty].modified and api.nvim_buf_get_lines(dirty, 0, 1, false)[1] == 'unsaved')
+assert(api.nvim_get_current_buf() == file, 'Cleanup must not change focus')
+local again = blank()
+open_file()
+assert(vim.fn.buflisted(again) == 0, 'Cleanup must work beyond first startup')
+local raced = blank()
+api.nvim_exec_autocmds('BufEnter', { buffer = api.nvim_get_current_buf() })
+api.nvim_buf_set_lines(raced, 0, -1, false, { 'typed before cleanup' })
+vim.wait(80)
+assert(api.nvim_buf_is_valid(raced) and vim.bo[raced].modified, 'Deferred cleanup must recheck modifications')
+LUA
+
+export NVIM_SMOKE_HEADER="$SMOKE_TMP/header-regression.lua"
+cat > "$NVIM_SMOKE_HEADER" <<'LUA'
+local api = vim.api
+local runtime = require('bufferline.multiline.runtime')
+vim.o.columns = 100
+vim.o.lines = 40
+local editor, original = api.nvim_get_current_win(), api.nvim_get_current_buf()
+for index = 1, 40 do
+  local buf = api.nvim_create_buf(true, false)
+  api.nvim_buf_set_name(buf, string.format('%s/header-file-%02d.txt', vim.env.TMPDIR, index))
+end
+runtime.flush('test')
+local handle = assert(runtime.handles()[api.nvim_get_current_tabpage()])
+assert(handle.frame.total_rows > 3, 'header fixture must overflow')
+assert(vim.o.laststatus == 3, 'Use one bottom statusline, not a scratch-header banner')
+assert(vim.tbl_contains(require('lualine').get_config().options.ignore_focus, 'bufferline'), 'Statusline must retain editor context while navigating the header')
+local title_lines = api.nvim_buf_get_lines(handle.buf, 0, -1, false)
+assert(table.concat(title_lines):find('…', 1, true), 'Long titles must visibly truncate with an ellipsis')
+for _, line in ipairs(title_lines) do
+  assert(vim.fn.strdisplaywidth(line) <= api.nvim_win_get_width(handle.win), 'Header text must fit its editor width')
+end
+local function keys(value)
+  api.nvim_feedkeys(api.nvim_replace_termcodes(value, true, false, true), 'xt', false)
+  vim.wait(30)
+end
+for _, split in ipairs({ 'split', 'vsplit' }) do
+  for _, close_original in ipairs({ false, true }) do
+    local first_editor = api.nvim_get_current_win()
+    vim.cmd(split)
+    local second_editor = api.nvim_get_current_win()
+    vim.wait(30)
+    local closing = close_original and first_editor or second_editor
+    local surviving = close_original and second_editor or first_editor
+    api.nvim_set_current_win(closing)
+    keys(':q<CR>')
+    assert(not api.nvim_win_is_valid(closing) and api.nvim_win_is_valid(surviving), 'Quit must close only the requested split')
+    assert(require('bufferline.config').options.multiline.enabled and vim.o.showtabline == 0, 'Split quit must never enable native tabs')
+    handle = assert(runtime.handles()[api.nvim_get_current_tabpage()])
+    assert(runtime.owns(handle.win), 'Split quit must retain or rebuild an owned header')
+    editor = surviving
+    api.nvim_set_current_win(editor)
+  end
+end
+local editor_cursor = vim.o.guicursor
+keys('<C-k>')
+assert(api.nvim_get_current_win() == handle.win, 'Ctrl-k must enter the header')
+assert(vim.o.guicursor:find('BufferlineHiddenCursor', 1, true), 'Header must hide the normal-mode cursor')
+assert(vim.api.nvim_get_hl(0, { name = 'BufferlineHiddenCursor', link = false }).blend == 100, 'Header cursor must be fully transparent')
+local cursor = api.nvim_win_get_cursor(handle.win)
+keys('l')
+assert(not vim.deep_equal(cursor, api.nvim_win_get_cursor(handle.win)), 'header l must move to another entry')
+keys('h')
+assert(vim.deep_equal(cursor, api.nvim_win_get_cursor(handle.win)), 'header h must return to the previous entry')
+local first = handle.first_row
+keys('jjjj')
+assert(handle.first_row > first, 'header j must reveal overflow rows')
+keys('kkkk')
+assert(handle.first_row == first, 'header k must return to the first rows')
+assert(api.nvim_win_get_buf(editor) == original, 'header navigation must not switch the editing buffer')
+keys('<Esc>')
+assert(api.nvim_get_current_win() == editor, 'Escape must return to the editing window')
+assert(vim.o.guicursor == editor_cursor, 'Leaving header must restore the original cursor')
+assert(api.nvim_win_get_buf(editor) == original, 'Escape must not activate a candidate')
+keys('<C-k>l<CR>')
+assert(api.nvim_get_current_win() == editor, 'Enter must restore editing focus')
+assert(api.nvim_win_get_buf(editor) ~= original, 'Enter must activate the candidate')
+local active = api.nvim_win_get_buf(editor)
+keys('<C-k>l')
+local candidate = handle.candidate
+assert(candidate ~= active, 'Close fixture must select a hidden buffer')
+keys('x')
+assert(vim.fn.buflisted(candidate) == 0, 'Header x must remove the candidate')
+assert(api.nvim_win_get_buf(editor) == active, 'Hidden-buffer x must not switch the editor')
+assert(api.nvim_get_current_win() == handle.win, 'Header x must retain header focus')
+candidate = handle.candidate
+api.nvim_buf_set_lines(candidate, 0, -1, false, { 'unsaved candidate' })
+local notify, warned = vim.notify, false
+vim.notify = function() warned = true end
+keys('x')
+vim.notify = notify
+assert(warned and handle.candidate == candidate and vim.bo[candidate].modified, 'Refused x must retain dirty candidate')
+vim.bo[candidate].modified = false
+keys('<Esc><C-k>x')
+assert(vim.fn.buflisted(active) == 0, 'Header x must close the active file')
+assert(api.nvim_get_current_win() == handle.win and runtime.active(), 'Active close must retain usable header')
+keys('<Esc>')
+api.nvim_buf_set_lines(0, 0, -1, false, { 'first line', 'second line', 'third line' })
+api.nvim_win_set_cursor(editor, { 1, 0 })
+keys('jl')
+assert(vim.deep_equal(api.nvim_win_get_cursor(editor), { 2, 1 }), 'ordinary editor j/l mappings must still work')
 LUA
 
 export NVIM_SMOKE_DIRECTORY="$SMOKE_TMP/directory-regression.lua"
@@ -288,7 +546,12 @@ local function run()
   local bufferline_state = require('bufferline.state')
 
   local function render()
-    _G.nvim_bufferline()
+    local runtime = package.loaded['bufferline.multiline.runtime']
+    if runtime and runtime.active() then
+      runtime.flush('test')
+    else
+      _G.nvim_bufferline()
+    end
   end
 
   local function component_ids()
@@ -616,7 +879,9 @@ assert_loads_on_cmd ctrlsf.vim CtrlSFToggle
 assert_not_eager telescope.nvim
 assert_loads_on_cmd telescope.nvim "Telescope find_files"
 nvim_probe "neo-tree.nvim is eager (directory hijack ready at startup)" +"lua $(loaded_lua neo-tree.nvim)"
+nvim_probe "opening files removes only unused empty unnamed buffers" +"lua dofile(vim.env.NVIM_SMOKE_EMPTY_BUFFER)"
 nvim_probe "Bufferline formatter and indicator keep stable width" +"lua dofile(vim.env.NVIM_SMOKE_BUFFERLINE_CONFIG)"
+nvim_probe "Bufferline header keyboard navigation preserves editor mappings" +"lua dofile(vim.env.NVIM_SMOKE_HEADER)"
 nvim_probe "nvim <directory> settles to one persistent Neo-tree" "$REPO_DIR" +"let g:smoke_case='startup'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 nvim_probe "opening first Neo-tree file preserves tree and listed buffers" "$REPO_DIR" +"let g:smoke_case='first_file'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 nvim_probe "closing last file preserves real Neo-tree and editor windows" "$REPO_DIR" +"let g:smoke_case='close_last'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
@@ -631,6 +896,8 @@ assert_not_eager vim-autoformat
 assert_loads_on_cmd gundo.vim      GundoToggle
 assert_loads_on_cmd quickrun.vim   QuickRun
 assert_loads_on_cmd vim-autoformat Autoformat
+nvim_probe "first search mapping loads Ag before exposing command completion" +"lua local a=vim.api; local map=vim.fn.maparg(',s','n',false,true); assert(type(map.callback)=='function'); local feed=a.nvim_feedkeys; local called=false; a.nvim_feedkeys=function(keys,mode,escape) assert(require('lazy.core.config').plugins['ag.vim']._.loaded); assert(a.nvim_get_commands({}).Ag.complete=='file'); assert(keys==':Ag ' and mode=='ni' and not escape); called=true end; local ok,err=pcall(map.callback); a.nvim_feedkeys=feed; assert(ok,err); assert(called)"
+nvim_probe "fresh-process search completion handles first, repeated and fast input" +"lua dofile(vim.env.NVIM_SMOKE_SEARCH)"
 assert_not_eager wilder.nvim
 nvim_probe "wilder loads on CmdlineEnter" +"doautocmd CmdlineEnter" +"lua $(loaded_lua wilder.nvim)"
 assert_not_eager editorconfig.nvim

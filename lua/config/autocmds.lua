@@ -32,6 +32,31 @@ autocmd('InsertLeave', {
   end,
 })
 
+autocmd('BufEnter', {
+  group = general_group,
+  callback = function(event)
+    local target = event.buf
+    vim.schedule(function()
+      local api = vim.api
+      if not api.nvim_buf_is_valid(target) or vim.bo[target].buftype ~= ''
+        or not vim.bo[target].buflisted or #vim.fn.win_findbuf(target) == 0 then
+        return
+      end
+      local name = api.nvim_buf_get_name(target)
+      if name == '' or vim.fn.isdirectory(name) == 1 then return end
+      for _, buf in ipairs(api.nvim_list_bufs()) do
+        if buf ~= target and api.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted
+          and vim.bo[buf].buftype == '' and api.nvim_buf_get_name(buf) == ''
+          and not vim.bo[buf].modified and #vim.fn.win_findbuf(buf) == 0
+          and api.nvim_buf_line_count(buf) == 1
+          and api.nvim_buf_get_lines(buf, 0, 1, false)[1] == '' then
+          api.nvim_buf_delete(buf, { force = false })
+        end
+      end
+    end)
+  end,
+})
+
 -- Reopen file at last edit position
 autocmd('BufReadPost', {
   group = general_group,
@@ -59,6 +84,15 @@ autocmd('BufWinEnter', {
 
 -- FileType specific settings
 local filetype_group = augroup('FileTypeSettings', { clear = true })
+
+augroup('QuickfixUtility', { clear = true })
+autocmd('FileType', {
+  group = 'QuickfixUtility',
+  pattern = 'qf',
+  callback = function(event)
+    vim.bo[event.buf].buflisted = false
+  end,
+})
 
 autocmd('FileType', {
   group = filetype_group,

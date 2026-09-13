@@ -105,8 +105,10 @@ Leader key: **`,`** (comma)
 | `,p` | Find files (Telescope) |
 | `,f` | Live grep (Telescope) |
 | `,b` | Switch buffers (Telescope) |
-| `,s` | Search with Ag |
+| `,s` | Load Ag, then open editable search input (safe on first use with Wilder) |
 | `\` | Search word under cursor (CtrlSF) |
+
+Ag results use an unlisted quickfix utility window, not an editor tab. The buffer panel and bottom statusline keep the real editor context; Enter opens a result in the editor and `q` closes the results window.
 
 ### Code
 
@@ -139,6 +141,21 @@ Leader key: **`,`** (comma)
 | `<C-t>` | New tab |
 | `,tt` | Return to the previous tab |
 | `,t` | Open a terminal split |
+
+Local trial: Bufferline uses `MOSconfig/bufferline.nvim` on `feat/multiline-buffer-tabs`, with up to three wrapped rows above the editor area only. Neo-tree stays full-height on the left and remains available with `,n`; no repeated Explorer placeholder is needed.
+
+Opening a named file removes unused, empty, unmodified `[No Name]` buffers. Unnamed buffers containing text, unsaved changes, or displayed in another window are preserved.
+
+Adjust `tab_size` (currently `16`) in `lua/config/plugins/bufferline.lua` to change buffer-tab width. `enforce_regular_tabs = true` and `truncate_names = true` keep tabs bounded and trim long names with an ellipsis.
+
+- Enter the header with `<C-k>` (or `<C-w>k`) from the editing window below it. The normal-mode cursor is hidden there; the tab highlight indicates selection. Leaving restores your editor cursor.
+- Use `h`/`l` to move between buffer entries and `j`/`k` to move between rows, including overflow. These keys choose a candidate without switching your file.
+- Press Enter to open the candidate in the editing window, or Escape to return without selecting. `:q` while in the header closes the header and returns to the editor.
+- The active file has a full blue tab background; the keyboard candidate uses a distinct full-tab search highlight. Tabs use Bufferline’s `slope` style by default. One bottom statusline follows the editing file even while the header is focused; the scratch header has no separate `[No Name]` banner. Close buttons are hidden, but modified-file indicators remain.
+- Press `x` in the header to close the highlighted candidate. Open files use the same smart-close action as `,q`, preserving splits across tabpages; hidden files are removed without switching the editor. Unsaved files and files in locked windows are refused. Selection moves to a surviving neighbor after closure and stays in the header.
+- Scroll over the header or click the Nerd Font chevrons to browse overflow; click a buffer to open it directly. Terminal mouse reporting must be enabled; user mouse mappings can consume those events.
+
+Multi-row uses an extra header split. `multiline.enabled` is the only renderer switch: closing splits, `:only`, or temporarily insufficient space never enables native tabs. The header is rebuilt when the layout permits. Before saving a session, explicitly disable multiline to avoid serializing its scratch window. To select native rendering, set `multiline.enabled = false` in `lua/config/plugins/bufferline.lua` and restart.
 
 `,t` waits for the mapping timeout because `,tt` shares its prefix. `*` searches backward and `#` searches forward; both center the result.
 

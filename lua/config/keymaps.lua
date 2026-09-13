@@ -24,11 +24,23 @@ local function set_bg_color()
   end
 end
 
-local function close_buffer_smart()
-  local original = vim.api.nvim_get_current_buf()
+local function close_buffer_smart(buf)
+  local original = buf or vim.api.nvim_get_current_buf()
   if vim.bo[original].modified then
     vim.notify('Buffer has unsaved changes; save it before closing.', vim.log.levels.WARN)
     return
+  end
+
+  local windows = vim.fn.win_findbuf(original)
+  if #windows == 0 then
+    vim.api.nvim_buf_delete(original, { force = false })
+    return
+  end
+  for _, win in ipairs(windows) do
+    if vim.wo[win].winfixbuf then
+      vim.notify('Buffer is displayed in a locked window; unlock it before closing.', vim.log.levels.WARN)
+      return
+    end
   end
 
   local bufs = vim.fn.getbufinfo({ buflisted = 1 })
@@ -184,7 +196,10 @@ map('n', '<leader>jd', function() vim.lsp.buf.definition() end, opts)
 map('n', '<leader>gd', function() vim.lsp.buf.declaration() end, opts)
 map('n', '<leader>ee', function() vim.diagnostic.open_float() end, opts)
 map('n', '<leader><space>', ':FixWhitespace<cr>', opts)
-map('n', '<leader>s', ':Ag ', opts)
+map('n', '<leader>s', function()
+  require('lazy').load({ plugins = { 'ag.vim' } })
+  vim.api.nvim_feedkeys(':Ag ', 'ni', false)
+end, opts)
 map('n', '\\', '<Plug>CtrlSFCwordPath<CR>', opts)
 map('n', '<leader>a', '<Plug>(EasyAlign)', opts)
 map('v', '<leader>a', '<Plug>(EasyAlign)', opts)
@@ -216,3 +231,5 @@ map('c', '<C-j>', '<t_kd>', opts)
 map('c', '<C-k>', '<t_ku>', opts)
 map('c', '<C-a>', '<Home>', opts)
 map('c', '<C-e>', '<End>', opts)
+
+return { close_buffer = close_buffer_smart }

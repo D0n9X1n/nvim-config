@@ -178,7 +178,8 @@ return {
     end,
   },
   {
-    'akinsho/bufferline.nvim',
+    'MOSconfig/bufferline.nvim',
+    branch = 'feat/multiline-buffer-tabs',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
     config = function()
       require('config.plugins.bufferline')
