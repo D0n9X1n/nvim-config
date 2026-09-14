@@ -61,7 +61,13 @@ local function unit()
       end
       vim.system = function(command, opts)
         calls = calls + 1
-        eq(command, windows and { 'cmd.exe', '/d', '/c', 'install.cmd' } or { 'bash', 'install.sh' }, 'preview platform command')
+        if windows then
+          eq(vim.list_slice(command, 1, 5), { 'powershell', '-NoLogo', '-NoProfile', '-NonInteractive', '-Command' }, 'native preview command')
+          assert(command[6]:find('Invoke-WebRequest -UseBasicParsing', 1, true), 'preview must avoid the legacy web parser')
+          assert(command[6]:find("$ErrorActionPreference = 'Stop'", 1, true), 'preview errors must terminate')
+        else
+          eq(command, { 'bash', 'install.sh' }, 'Unix preview command')
+        end
         eq(opts.cwd, 'fixture [space]/plugin/app', 'preview working directory')
         return { wait = function() return { code = status, stderr = 'injected build failure', stdout = '' } end }
       end

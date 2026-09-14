@@ -85,7 +85,7 @@ To recover a backup, close Neovim, move the current config aside, and move the p
 
 Install the optional tools you need using your preferred Windows package manager: `rg` (Telescope live grep), `ag`, `fzf`, Universal Ctags, Python plus `pynvim`, and language servers. Check the Python provider with `:checkhealth vim.provider`. Treesitter parser installation additionally needs a Windows C compiler, `tree-sitter` CLI 0.26.1+, `tar`, and `curl`; it remains an explicit `:TSInstall` step.
 
-On Windows, Neovim selects `pwsh` when available, otherwise `powershell`, including for `,t` and `:!` commands. Personal shell overrides can go in `private_config.lua`. Markdown preview uses its upstream Windows installer rather than Bash and downloads a prebuilt executable during plugin setup.
+On Windows, Neovim selects `pwsh` when available, otherwise `powershell`, including for `,t` and `:!` commands. Personal shell overrides can go in `private_config.lua`. Markdown preview uses native PowerShell rather than Bash to download its version-matched upstream Windows executable during plugin setup; download and extraction failures stop the build.
 
 **Known limits:** QuickRun's bundled C/C++ commands use Unix executable names; configure native commands through `g:quickrun_known_file_types` in your private overrides. Its multi-command defaults use `&&`, which Windows PowerShell 5.1 does not support. This is not a guarantee that every legacy plugin's external command works unchanged on Windows.
 
