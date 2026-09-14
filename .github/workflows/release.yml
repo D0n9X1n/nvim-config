@@ -1,0 +1,133 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Exact version tag to draft (vMAJOR.MINOR.PATCH)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate release provenance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      sha: ${{ steps.check.outputs.sha }}
+      previous_tag: ${{ steps.check.outputs.previous_tag }}
+    steps:
+      - name: Resolve and validate the requested tag
+        id: resolve
+        env:
+          RAW_TAG: ${{ github.event.inputs.tag }}
+          REF_TAG: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          set -euo pipefail
+          tag="$RAW_TAG"
+          if [ -z "$tag" ]; then
+            if [ "$REF_TYPE" != "tag" ]; then
+              echo "Release runs only for tags." >&2
+              exit 1
+            fi
+            tag="$REF_TAG"
+          fi
+          if ! printf '%s' "$tag" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+            echo "Refusing '$tag': expected an exact vMAJOR.MINOR.PATCH tag." >&2
+            exit 1
+          fi
+          printf 'tag=%s\n' "$tag" >> "$GITHUB_OUTPUT"
+      - name: Check out the tagged commit with full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: refs/tags/${{ steps.resolve.outputs.tag }}
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - name: Fetch the base branch and tags
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --force origin '+refs/heads/main:refs/remotes/origin/main'
+          git fetch --force origin '+refs/tags/*:refs/tags/*'
+          if [ "$(git rev-parse --is-shallow-repository)" != "false" ]; then
+            echo "Refusing to validate a shallow checkout." >&2
+            exit 1
+          fi
+      - name: Refuse unmerged tagged code before running repository scripts
+        env:
+          RELEASE_TAG: ${{ steps.resolve.outputs.tag }}
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")"
+          test "$(git rev-parse HEAD)" = "$sha"
+          git merge-base --is-ancestor "$sha" refs/remotes/origin/main
+      - name: Release automation regressions
+        run: python3 scripts/test-release.py
+      - name: Validate provenance (read-only)
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.resolve.outputs.tag }}
+          RELEASE_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python3 scripts/release.py --repo "$RELEASE_REPO" check \
+            --tag "$RELEASE_TAG" \
+            --record "$RUNNER_TEMP/release-provenance.json" \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Upload the provenance record
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-provenance
+          if-no-files-found: error
+          retention-days: 7
+          path: ${{ runner.temp }}/release-provenance.json
+
+  draft:
+    name: Create the release draft
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Check out the validated commit with full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - name: Fetch the base branch and tags
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --force origin '+refs/heads/main:refs/remotes/origin/main'
+          git fetch --force origin '+refs/tags/*:refs/tags/*'
+      - name: Re-validate provenance and create a draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+          RELEASE_SHA: ${{ needs.validate.outputs.sha }}
+          RELEASE_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python3 scripts/release.py --repo "$RELEASE_REPO" draft \
+            --tag "$RELEASE_TAG" \
+            --expect-sha "$RELEASE_SHA"

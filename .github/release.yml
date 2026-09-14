@@ -1,0 +1,20 @@
+changelog:
+  exclude:
+    labels:
+      - no-release-note
+  categories:
+    - title: Features
+      labels:
+        - feat
+    - title: Fixes
+      labels:
+        - fix
+    - title: Documentation
+      labels:
+        - docs
+    - title: Continuous integration
+      labels:
+        - ci
+    - title: Other changes
+      labels:
+        - '*'
