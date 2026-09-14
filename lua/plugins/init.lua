@@ -77,8 +77,10 @@ return {
         and { 'cmd.exe', '/d', '/c', 'install.cmd' }
         or { 'bash', 'install.sh' }
       local result = vim.system(command, { cwd = plugin.dir .. '/app', text = true }):wait()
-      if result.code ~= 0 then
-        error('Markdown preview installation failed: ' .. (result.stderr or result.stdout or tostring(result.code)))
+      if result.code ~= 0 or (vim.fn.has('win32') == 1
+        and vim.fn.filereadable(plugin.dir .. '/app/bin/markdown-preview-win.exe') ~= 1) then
+        error('Markdown preview installation failed (exit ' .. result.code .. '): '
+          .. (result.stderr or '') .. (result.stdout or ''))
       end
     end,
     cmd = { 'MarkdownPreview', 'MarkdownPreviewStop', 'MarkdownPreviewToggle' },

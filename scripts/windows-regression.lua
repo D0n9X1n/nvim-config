@@ -6,6 +6,7 @@ end
 
 local function unit()
   local has, executable, system = vim.fn.has, vim.fn.executable, vim.system
+  local filereadable = vim.fn.filereadable
   local original = {}
   local options = { 'shell', 'shellcmdflag', 'shellpipe', 'shellredir', 'shellquote', 'shellxquote', 'shelltemp' }
   for _, name in ipairs(options) do original[name] = vim.o[name] end
@@ -53,7 +54,11 @@ local function unit()
         if feature == 'win32' or feature == 'win64' then return windows and 1 or 0 end
         return has(feature)
       end
-      local calls, status = 0, 0
+      local calls, status, binary = 0, 0, 1
+      vim.fn.filereadable = function(path)
+        eq(path, 'fixture [space]/plugin/app/bin/markdown-preview-win.exe', 'preview binary path')
+        return binary
+      end
       vim.system = function(command, opts)
         calls = calls + 1
         eq(command, windows and { 'cmd.exe', '/d', '/c', 'install.cmd' } or { 'bash', 'install.sh' }, 'preview platform command')
@@ -65,9 +70,14 @@ local function unit()
       local success, failure = pcall(preview.build, { dir = 'fixture [space]/plugin' })
       assert(not success and tostring(failure):find('injected build failure', 1, true), 'build failure must propagate')
       eq(calls, 2, 'both builds awaited')
+      if windows then
+        status, binary = 0, 0
+        assert(not pcall(preview.build, { dir = 'fixture [space]/plugin' }), 'missing binary must fail even on exit zero')
+      end
     end
   end, debug.traceback)
   vim.fn.has, vim.fn.executable, vim.system = has, executable, system
+  vim.fn.filereadable = filereadable
   for name, value in pairs(original) do vim.o[name] = value end
   assert(ok, err)
 end
