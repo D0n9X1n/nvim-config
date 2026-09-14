@@ -310,6 +310,12 @@ python3 scripts/test-release.py
 
 `.github/workflows/windows.yml` runs on pull requests, pushes to `main`, and manual dispatch. Separate `windows-2022` jobs use Windows PowerShell 5.1 and PowerShell 7, with Git Bash directories excluded from the test `PATH`. They download checksum-verified Neovim 0.12.5, install the Python provider, run disposable installer fixtures, real PowerShell commands, and an attached-UI terminal input/output test, then install plugins into isolated CI directories and validate configuration startup plus the Markdown preview Windows binary. Actions are commit-pinned, credentials are not persisted, and workflow permissions are read-only.
 
+Both Windows jobs explicitly provision the documented dependency set through version-pinned Chocolatey packages: `ag`, `rg`, `fzf`, Universal Ctags, Tree-sitter CLI, LLVM (`clang`/`clangd`), Node.js LTS, Go, Lua language server, and `curl.exe`. Native Windows `tar.exe` and the hosted Visual Studio compiler environment are verified; Python 3.12 and `pynvim` are installed separately. CI refreshes PATH rather than relying on tools incidentally preinstalled on the runner.
+
+Pinned npm packages provide Prettier, TypeScript/tsserver, Pyright, Bash/JSON/YAML/GraphQL/Solidity servers, and the Emmet server; `gopls` is installed at an explicit version. Dependency probes exercise `ag`/`rg` matching and no-match behavior, Ag quickfix results, fzf filtering, Ctags output, C compilation, formatting through PowerShell, archive/download commands, a newly compiled C Treesitter parser, and initialization of every configured language server. These probes own their clients and use isolated workspaces so background indexing cannot contaminate other tests.
+
+“Everything” here means this configuration's documented external tools and configured servers, not every compiler or formatter supported by legacy QuickRun/Autoformat. CI does not install Nerd Fonts or validate browser rendering. `install.ps1` remains report-only for optional dependencies on your machine; `scripts/windows-dependencies.ps1` is restricted to disposable GitHub runners.
+
 Run the non-network regression suite locally on Windows:
 
 ```powershell
