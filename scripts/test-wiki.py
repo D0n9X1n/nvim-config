@@ -392,5 +392,19 @@ class WikiTestCase(unittest.TestCase):
         self.assertNotIn("git config", source)
 
 
+class WorkflowTests(unittest.TestCase):
+    def test_publication_requires_trusted_event_main_and_enabled_variable(self):
+        workflow = (ROOT / '.github/workflows/publish-wiki.yml').read_text()
+        publish = workflow.split('\n  publish:\n', 1)[1].split('\n  blocked:\n', 1)[0]
+        condition = publish.split('    if: >-\n', 1)[1].split('    runs-on:', 1)[0]
+        self.assertEqual(' '.join(condition.split()),
+                         "(github.event_name == 'push' || github.event_name == 'workflow_dispatch') && "
+                         "github.ref == 'refs/heads/main' && vars.WIKI_PUBLISH_ENABLED == 'true'")
+        self.assertIn('needs: validate', publish)
+        self.assertIn('contents: write', publish)
+        self.assertIn('persist-credentials: false', publish)
+        self.assertNotIn('pull_request_target', workflow)
+
+
 if __name__ == "__main__":
     unittest.main()
