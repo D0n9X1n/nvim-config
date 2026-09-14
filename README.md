@@ -172,7 +172,7 @@ Ag results use an unlisted quickfix utility window, not an editor tab. The buffe
 | `,tt` | Return to the previous tab |
 | `,t` | Open a terminal split |
 
-Bufferline uses `MOSconfig/bufferline.nvim` pinned to `v4.10.1`, with up to three wrapped rows above the editor area only. Neo-tree stays full-height on the left and remains available with `,n`; no repeated Explorer placeholder is needed.
+Bufferline follows the latest `main` branch of `MOSconfig/bufferline.nvim` (updated with `:Lazy update`), with up to three wrapped rows above the editor area only. Neo-tree stays full-height on the left and remains available with `,n`; no repeated Explorer placeholder is needed.
 
 Opening a named file removes unused, empty, unmodified `[No Name]` buffers. Unnamed buffers containing text, unsaved changes, or displayed in another window are preserved.
 

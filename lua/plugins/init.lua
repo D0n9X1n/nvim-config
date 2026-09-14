@@ -204,7 +204,7 @@ return {
   },
   {
     'MOSconfig/bufferline.nvim',
-    tag = 'v4.10.1',
+    branch = 'main',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
     config = function()
       require('config.plugins.bufferline')

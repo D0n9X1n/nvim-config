@@ -880,6 +880,7 @@ assert_not_eager telescope.nvim
 assert_loads_on_cmd telescope.nvim "Telescope find_files"
 nvim_probe "neo-tree.nvim is eager (directory hijack ready at startup)" +"lua $(loaded_lua neo-tree.nvim)"
 nvim_probe "opening files removes only unused empty unnamed buffers" +"lua dofile(vim.env.NVIM_SMOKE_EMPTY_BUFFER)"
+nvim_probe "Bufferline detached clone updates main and writes its lockfile" +"lua dofile(vim.env.NVIM_SMOKE_REPO .. '/scripts/bufferline-update-regression.lua')"
 nvim_probe "Bufferline formatter and indicator keep stable width" +"lua dofile(vim.env.NVIM_SMOKE_BUFFERLINE_CONFIG)"
 nvim_probe "Bufferline header keyboard navigation preserves editor mappings" +"lua dofile(vim.env.NVIM_SMOKE_HEADER)"
 nvim_probe "nvim <directory> settles to one persistent Neo-tree" "$REPO_DIR" +"let g:smoke_case='startup'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
