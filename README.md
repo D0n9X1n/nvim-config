@@ -292,6 +292,20 @@ bash scripts/smoke.sh
 
 Requires Python 3 (including Neovim's Python provider), Neovim 0.12+, and the plugins already installed. Tests copy tracked public runtime files into a temporary config, omit private overrides, isolate data/state/cache and lockfiles, disable ShaDa, and refuse plugin/parser downloads. The matrix includes installer fixtures, harness failure controls, buffer/tab safety, Treesitter highlighting/indentation, and existing directory-startup/diagnostic checks. Missing test prerequisites fail explicitly.
 
+### macOS and Linux pipeline
+
+`.github/workflows/ci.yml` runs the full smoke matrix on Ubuntu 24.04 x86-64, macOS ARM64, and macOS Intel. It downloads checksum-verified Neovim 0.12.5, installs test dependencies, and creates fresh public config/plugin state under the runner's temporary directory. Plugin setup checks both lazy.nvim task errors and explicit success markers before tests begin; missing dependencies never become skipped tests.
+
+The normal bundled Lua parser is checked for real highlight captures and indentation; this pipeline does not download language parsers during smoke tests. Failure logs and resolved plugin revisions are retained for diagnosis. `Unix CI` is the aggregate required-check candidate and fails when any matrix or automation-contract job fails or is skipped. Windows remains a separate required workflow.
+
+`bash scripts/ci-unix.sh` is a disposable-runner bootstrap, not a replacement for local `bash scripts/smoke.sh`. Local pipeline helper tests do not install packages:
+
+```bash
+python3 scripts/test-ci.py
+python3 scripts/test-wiki.py
+python3 scripts/test-release.py
+```
+
 ### Windows pipeline
 
 `.github/workflows/windows.yml` runs on pull requests, pushes to `main`, and manual dispatch. Separate `windows-2022` jobs use Windows PowerShell 5.1 and PowerShell 7, with Git Bash directories excluded from the test `PATH`. They download checksum-verified Neovim 0.12.5, install the Python provider, run disposable installer fixtures, real PowerShell commands, and an attached-UI terminal input/output test, then install plugins into isolated CI directories and validate configuration startup plus the Markdown preview Windows binary. Actions are commit-pinned, credentials are not persisted, and workflow permissions are read-only.
@@ -306,6 +320,22 @@ pwsh -NoProfile -File .\scripts\windows-regression.ps1
 It requires Neovim and Git but does not load your personal configuration, install plugins, or call a package manager. The CI-only `-Integration` mode deliberately loads the selected installed config; do not use it against private/live configuration. Plugin installation in CI requires network access. Browser rendering and every optional language tool are not covered; manually verify `,t`, `:!Write-Output hi`, Telescope searches, and Markdown preview on your machine.
 
 The pipeline must pass on Windows before native support is considered verified. Local macOS Lua branch tests and workflow linting are not substitutes for a hosted Windows run.
+
+## Wiki and release automation
+
+The Wiki home page is generated from this README; edit documentation here rather than maintaining a second copy. Pull requests validate the rendered page and local links without publishing credentials. The publisher preserves unrelated Wiki pages, refuses unmarked existing Home content, detects the remote default branch, and never force-pushes.
+
+Wiki publication starts **disabled**. First create the Wiki's initial page through GitHub, review its contents, and explicitly adopt the generated Home marker. Then enable the repository variable `WIKI_PUBLISH_ENABLED=true` and run the main-branch manual publishing workflow. Verify a publish and an unchanged rerun before considering automatic publication. A missing Wiki or disabled publisher is not a successful live-publishing test.
+
+Releases follow a reviewed flow:
+
+1. Merge the change PR and wait for **Unix CI and Windows PowerShell** main-push runs at the exact merged commit.
+2. Choose `vMAJOR.MINOR.PATCH`: patch for fixes/docs, minor for behavior/plugins/keymaps, major for breaking layout/leader/Neovim requirements.
+3. Create and push the version tag explicitly. `release.yml` validates complete history, main ancestry, a published ancestor release, and every required job at that exact SHA.
+4. The workflow creates a **draft** with Highlights, Upgrade, Verification, Known limitations, and a categorized PR changelog. Labels `feat`, `fix`, `docs`, and `ci` control categories; unmatched changes remain listed.
+5. Review the draft for accurate user-facing changes and upgrade instructions, then publish the matching GitHub Release. A tag is not considered a finished release until its paired release is published.
+
+The release helper rejects stale/PR-only CI results, missing jobs, API failures, moved tags, and conflicting existing releases. It does not publish automatically or invent platform packages. Verification links are evidence for the named CI coverage, not claims that browser rendering or every optional tool was tested. Release/Wiki fixture tests never create a live release or publish a Wiki.
 
 ## Credits
 

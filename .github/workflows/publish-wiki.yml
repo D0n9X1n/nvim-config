@@ -1,0 +1,136 @@
+name: Wiki
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Publishing is serialized: a Wiki push must never race another run.
+concurrency:
+  group: wiki-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate rendered Home
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      # Read-only: no token, no network writes, output discarded in runner temp.
+      - name: Run Wiki fixtures
+        run: python3 scripts/test-wiki.py
+      - name: Render and validate README links
+        run: python3 scripts/wiki.py check --output "$RUNNER_TEMP/Home.md"
+
+  publish:
+    name: Publish Home
+    needs: validate
+    # Manual dispatch from main only, and only once the repository variable is
+    # deliberately switched on after the first Wiki page exists and is reviewed.
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      vars.WIKI_PUBLISH_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      # The only step that sees a token. Credentials reach Git through a
+      # short-lived askpass helper: never a tokenized URL, never Git config.
+      - name: Clone, render, and publish Home
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          askpass="$(mktemp "$RUNNER_TEMP/askpass.XXXXXX")"
+          trap 'rm -f "$askpass"' EXIT
+          cat >"$askpass" <<'SCRIPT'
+          #!/bin/sh
+          case "$1" in
+            Username*) printf '%s\n' 'x-access-token' ;;
+            Password*) printf '%s\n' "$GITHUB_TOKEN" ;;
+          esac
+          SCRIPT
+          chmod 700 "$askpass"
+          export GIT_ASKPASS="$askpass"
+          export GIT_TERMINAL_PROMPT=0
+
+          # Refuse to publish a commit that is no longer the tip of main.
+          remote_main="$(git ls-remote "https://github.com/$REPOSITORY.git" \
+            refs/heads/main | cut -f1)"
+          if [ "$remote_main" != "$SOURCE_SHA" ]; then
+            echo "::error::main is at $remote_main but this run was dispatched" \
+              "at $SOURCE_SHA; re-dispatch from the current main"
+            exit 1
+          fi
+
+          wiki="$RUNNER_TEMP/wiki"
+          if ! git clone --quiet "https://github.com/$REPOSITORY.wiki.git" "$wiki"; then
+            echo "::error::The Wiki has no initial page. Create and review Home" \
+              "once in the GitHub Wiki UI, then re-dispatch this workflow."
+            exit 1
+          fi
+
+          base="$(git -C "$wiki" rev-parse HEAD)"
+          python3 scripts/wiki.py sync --repo "$REPOSITORY" --sha "$SOURCE_SHA" \
+            --wiki "$wiki" --push --expect-base "$base" | tee "$RUNNER_TEMP/sync.log"
+          {
+            echo "### Wiki publish"
+            echo
+            sed 's/^/- /' "$RUNNER_TEMP/sync.log"
+          } >>"$GITHUB_STEP_SUMMARY"
+
+  blocked:
+    name: Publish blocked
+    needs: validate
+    # Report the gate honestly instead of letting a dispatch look like a publish.
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      !(github.ref == 'refs/heads/main' &&
+        vars.WIKI_PUBLISH_ENABLED == 'true')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Explain why nothing was published
+        # Context values arrive as environment variables, never interpolated
+        # into the script body.
+        env:
+          ACTUAL_REF: ${{ github.ref }}
+          ACTUAL_FLAG: ${{ vars.WIKI_PUBLISH_ENABLED }}
+        run: |
+          set -euo pipefail
+          echo "::notice::Validation ran; publishing is gated and did not run."
+          {
+            echo "### Wiki publish skipped"
+            echo
+            echo "The rendered Home page was validated but **not published**."
+            echo
+            echo "| Condition | Required | Actual |"
+            echo "| --- | --- | --- |"
+            echo "| Ref | \`refs/heads/main\` | \`${ACTUAL_REF}\` |"
+            echo "| \`WIKI_PUBLISH_ENABLED\` | \`true\` | \`${ACTUAL_FLAG:-(unset)}\` |"
+            echo
+            echo "To enable publishing: create and review the first Wiki Home"
+            echo "page manually, then set the repository variable"
+            echo "\`WIKI_PUBLISH_ENABLED\` to \`true\` and dispatch again from main."
+          } >>"$GITHUB_STEP_SUMMARY"

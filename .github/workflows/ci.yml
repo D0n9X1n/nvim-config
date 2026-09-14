@@ -1,0 +1,129 @@
+name: Unix CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unix-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  smoke:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu x86-64
+            runner: ubuntu-24.04
+            asset: nvim-linux-x86_64
+            sha256: bce0f56eda1f1b1db6eee8f4133d7a38813ea07933837dd1777411ca384c6875
+          - name: macOS ARM64
+            runner: macos-14
+            asset: nvim-macos-arm64
+            sha256: 65fb000099e47ca1b762584c484cc833f40e30851a0ec450d4174e16317c1f9b
+          - name: macOS Intel
+            runner: macos-15-intel
+            asset: nvim-macos-x86_64
+            sha256: 81f4518622cb059b450ee2e498c6a1082a222f6bd89589de5bbcf0c6a68aa3fd
+    defaults:
+      run:
+        shell: bash
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        timeout-minutes: 5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        timeout-minutes: 5
+        with:
+          python-version: '3.12'
+      - name: Install native test dependencies
+        timeout-minutes: 10
+        run: |
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            sudo apt-get update
+            sudo apt-get install -y ripgrep silversearcher-ag fzf universal-ctags
+          else
+            brew install ripgrep the_silver_searcher fzf universal-ctags
+          fi
+          python3 -m pip install pynvim
+      - name: Install checksum-verified Neovim
+        timeout-minutes: 5
+        env:
+          ASSET: ${{ matrix.asset }}
+          SHA256: ${{ matrix.sha256 }}
+        run: |
+          archive="$RUNNER_TEMP/$ASSET.tar.gz"
+          curl --fail --show-error --location --retry 3 --max-time 180 \
+            "https://github.com/neovim/neovim/releases/download/v0.12.5/$ASSET.tar.gz" -o "$archive"
+          printf '%s  %s\n' "$SHA256" "$archive" | shasum -a 256 -c -
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          printf '%s\n' "$RUNNER_TEMP/$ASSET/bin" >> "$GITHUB_PATH"
+      - name: Full installer and editor regressions
+        timeout-minutes: 15
+        run: bash scripts/ci-unix.sh
+      - name: Upload failure logs
+        if: failure()
+        timeout-minutes: 5
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: unix-${{ matrix.asset }}-logs
+          path: ${{ runner.temp }}/nvim-unix-logs/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  automation:
+    name: Automation contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - name: Lint GitHub Actions workflows
+        timeout-minutes: 3
+        shell: bash
+        run: |
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          curl --fail --show-error --location --max-time 120 \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz -o "$archive"
+          printf '%s  %s\n' 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 "$archive" | sha256sum -c -
+          tar -xzf "$archive" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+      - name: Test pipeline helpers
+        run: |
+          bash -n scripts/ci-unix.sh
+          python3 scripts/test-ci.py
+          python3 scripts/test-wiki.py
+          python3 scripts/test-release.py
+          python3 scripts/wiki.py check
+
+  result:
+    name: Unix CI
+    if: always()
+    needs: [smoke, automation]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require all Unix jobs
+        env:
+          SMOKE: ${{ needs.smoke.result }}
+          AUTOMATION: ${{ needs.automation.result }}
+        run: |
+          test "$SMOKE" = success
+          test "$AUTOMATION" = success
