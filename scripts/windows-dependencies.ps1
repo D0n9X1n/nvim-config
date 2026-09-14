@@ -50,11 +50,17 @@ if ($Mode -eq 'Install') {
         }
         $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
         $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-        $env:PATH = $env:PATH + ';' + $machinePath + ';' + $userPath
+        $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+        $paths = ($env:PATH + ';' + $machinePath + ';' + $userPath) -split ';' | Where-Object {
+            $_ -and $seen.Add($_.TrimEnd('\'))
+        }
+        $env:PATH = $paths -join ';'
         Add-ToolPath (Join-Path $env:ChocolateyInstall 'bin')
         Add-ToolPath (Join-Path $env:ProgramFiles 'LLVM\bin')
         Add-ToolPath (Join-Path $env:ProgramFiles 'nodejs')
         Add-ToolPath (Join-Path $env:ProgramFiles 'Go\bin')
+        if ($env:PATH.Length -gt 7000) { throw 'Windows PATH is too long for npm cmd.exe lifecycle scripts.' }
+        Invoke-Native 'cmd.exe' @('/d', '/c', 'node --version')
         $npm = Join-Path $tools 'npm'
         $null = [IO.Directory]::CreateDirectory($npm)
         Invoke-Native 'npm.cmd' @('install', '--global', '--prefix', $npm, '--no-audit', '--no-fund',

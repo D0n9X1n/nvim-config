@@ -49,6 +49,11 @@ jobs:
         timeout-minutes: 5
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        timeout-minutes: 5
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
       - name: Install native test dependencies
         timeout-minutes: 10
         run: |
@@ -59,6 +64,9 @@ jobs:
             brew install ripgrep the_silver_searcher fzf universal-ctags
           fi
           python3 -m pip install pynvim
+          npm install --global --prefix "$RUNNER_TEMP/nvim-npm" typescript@5.9.3 prettier@3.9.6
+          printf '%s\n' "$RUNNER_TEMP/nvim-npm/bin" >> "$GITHUB_PATH"
+          printf 'NPM_CONFIG_PREFIX=%s\n' "$RUNNER_TEMP/nvim-npm" >> "$GITHUB_ENV"
       - name: Install checksum-verified Neovim
         timeout-minutes: 5
         env:
