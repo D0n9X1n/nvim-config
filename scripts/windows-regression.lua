@@ -6,7 +6,7 @@ end
 
 local function unit()
   local has, executable, system = vim.fn.has, vim.fn.executable, vim.system
-  local filereadable = vim.fn.filereadable
+  local filereadable, readfile = vim.fn.filereadable, vim.fn.readfile
   local original = {}
   local options = { 'shell', 'shellcmdflag', 'shellpipe', 'shellredir', 'shellquote', 'shellxquote', 'shelltemp' }
   for _, name in ipairs(options) do original[name] = vim.o[name] end
@@ -59,6 +59,10 @@ local function unit()
         eq(path, 'fixture [space]/plugin/app/bin/markdown-preview-win.exe', 'preview binary path')
         return binary
       end
+      vim.fn.readfile = function(path)
+        eq(path, 'fixture [space]/plugin/package.json', 'preview package metadata')
+        return { '{"version":"0.0.10"}' }
+      end
       vim.system = function(command, opts)
         calls = calls + 1
         if windows then
@@ -66,7 +70,7 @@ local function unit()
           assert(command[6]:find('Invoke-WebRequest -UseBasicParsing', 1, true), 'preview must avoid the legacy web parser')
           assert(command[6]:find("$ErrorActionPreference = 'Stop'", 1, true), 'preview errors must terminate')
         else
-          eq(command, { 'bash', 'install.sh' }, 'Unix preview command')
+          eq(command, { 'bash', 'install.sh', 'v0.0.10' }, 'Unix preview command')
         end
         eq(opts.cwd, 'fixture [space]/plugin/app', 'preview working directory')
         return { wait = function() return { code = status, stderr = 'injected build failure', stdout = '' } end }
@@ -83,7 +87,7 @@ local function unit()
     end
   end, debug.traceback)
   vim.fn.has, vim.fn.executable, vim.system = has, executable, system
-  vim.fn.filereadable = filereadable
+  vim.fn.filereadable, vim.fn.readfile = filereadable, readfile
   for name, value in pairs(original) do vim.o[name] = value end
   assert(ok, err)
 end

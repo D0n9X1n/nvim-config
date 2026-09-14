@@ -60,7 +60,7 @@ setup_if_executable('bashls', 'bash-language-server')
 setup_if_executable('jsonls', 'vscode-json-language-server')
 setup_if_executable('yamlls', 'yaml-language-server')
 setup_if_executable('graphql', 'graphql-lsp')
-setup_if_executable('solidity_ls', 'solidity-language-server')
+setup_if_executable('solidity_ls', 'vscode-solidity-server')
 setup_if_executable('lua_ls', 'lua-language-server', {
   settings = {
     Lua = {
