@@ -69,6 +69,12 @@ jobs:
         run: |
           & .\scripts\windows-regression.ps1
           if ($LASTEXITCODE -ne 0) { throw 'Windows regressions failed' }
+      - name: Interactive PowerShell terminal
+        env:
+          NVIM_WINDOWS_SHELL: ${{ matrix.shell }}
+        run: |
+          python .\scripts\windows-terminal.py
+          if ($LASTEXITCODE -ne 0) { throw 'PowerShell terminal interaction failed' }
       - name: Install public configuration
         run: |
           & .\install.ps1 -NoDeps

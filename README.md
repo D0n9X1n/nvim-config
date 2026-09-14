@@ -294,7 +294,7 @@ Requires Python 3 (including Neovim's Python provider), Neovim 0.12+, and the pl
 
 ### Windows pipeline
 
-`.github/workflows/windows.yml` runs on pull requests, pushes to `main`, and manual dispatch. Separate `windows-2022` jobs use Windows PowerShell 5.1 and PowerShell 7, with Git Bash directories excluded from the test `PATH`. They download checksum-verified Neovim 0.12.5, install the Python provider, run disposable installer fixtures and real PowerShell command/terminal probes, then install plugins into isolated CI directories and validate configuration startup plus the Markdown preview Windows binary. Actions are commit-pinned, credentials are not persisted, and workflow permissions are read-only.
+`.github/workflows/windows.yml` runs on pull requests, pushes to `main`, and manual dispatch. Separate `windows-2022` jobs use Windows PowerShell 5.1 and PowerShell 7, with Git Bash directories excluded from the test `PATH`. They download checksum-verified Neovim 0.12.5, install the Python provider, run disposable installer fixtures, real PowerShell commands, and an attached-UI terminal input/output test, then install plugins into isolated CI directories and validate configuration startup plus the Markdown preview Windows binary. Actions are commit-pinned, credentials are not persisted, and workflow permissions are read-only.
 
 Run the non-network regression suite locally on Windows:
 
