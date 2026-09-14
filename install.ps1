@@ -150,7 +150,7 @@ function Get-EntryInfo {
         return $missing
     }
     # Enumerating the parent reports the link itself, so hidden and dangling links stay visible.
-    foreach ($entry in $parentInfo.EnumerateFileSystemInfos($name)) {
+    foreach ($entry in $parentInfo.GetFileSystemInfos($name)) {
         if (-not [string]::Equals($entry.Name, $name, [System.StringComparison]::OrdinalIgnoreCase)) {
             continue
         }
@@ -199,7 +199,7 @@ function Confirm-NoReparseTree {
         return
     }
     $directory = New-Object System.IO.DirectoryInfo $info.Path
-    foreach ($entry in $directory.EnumerateFileSystemInfos()) {
+    foreach ($entry in $directory.GetFileSystemInfos()) {
         $attributes = $entry.Attributes
         if (($attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
             throw "Refusing to touch the $Label because it contains a link or junction: $($entry.FullName)."
@@ -224,7 +224,7 @@ function Get-ManagedItems {
         throw "The checkout is missing lua\config: $($configDirectory.FullName)."
     }
     $names = New-Object System.Collections.ArrayList
-    foreach ($entry in $configDirectory.EnumerateFileSystemInfos('*.lua')) {
+    foreach ($entry in $configDirectory.GetFileSystemInfos('*.lua')) {
         if (($entry.Attributes -band [System.IO.FileAttributes]::Directory) -ne 0) {
             continue
         }
@@ -289,7 +289,7 @@ function Add-TreeSnapshotEntry {
         throw "Directory tree exceeds $($script:MaxTreeDepth) levels: $Directory."
     }
     $info = New-Object System.IO.DirectoryInfo $Directory
-    foreach ($entry in $info.EnumerateFileSystemInfos()) {
+    foreach ($entry in $info.GetFileSystemInfos()) {
         $relative = $entry.Name
         if ($Prefix -ne '') {
             $relative = $Prefix + '\' + $entry.Name
@@ -350,7 +350,7 @@ function Copy-TreeStrict {
     if ($info.IsDirectory) {
         [void][System.IO.Directory]::CreateDirectory($Destination)
         $directory = New-Object System.IO.DirectoryInfo $info.Path
-        foreach ($entry in $directory.EnumerateFileSystemInfos()) {
+        foreach ($entry in $directory.GetFileSystemInfos()) {
             Copy-TreeStrict -Source $entry.FullName -Destination ([System.IO.Path]::Combine($Destination, $entry.Name)) -Depth ($Depth + 1)
         }
     } else {
@@ -362,7 +362,7 @@ function Copy-TreeChildren {
     param([string]$Source, [string]$Destination)
 
     $directory = New-Object System.IO.DirectoryInfo $Source
-    foreach ($entry in $directory.EnumerateFileSystemInfos()) {
+    foreach ($entry in $directory.GetFileSystemInfos()) {
         Copy-TreeStrict -Source $entry.FullName -Destination ([System.IO.Path]::Combine($Destination, $entry.Name)) -Depth 1
     }
 }

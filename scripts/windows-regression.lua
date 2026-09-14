@@ -94,14 +94,15 @@ local function shell()
   eq(vim.v.shell_error, 0, 'quoted path exit')
   assert(result:find('unicode-path-ok', 1, true), 'quoted Unicode path output')
   vim.cmd('enew')
-  local lines = {}
+  local buffer = vim.api.nvim_get_current_buf()
   local job = vim.fn.jobstart({ vim.o.shell, '-NoLogo', '-NoProfile', '-Command', "Write-Output 'terminal-ok'" }, {
     term = true,
-    on_stdout = function(_, data) vim.list_extend(lines, data) end,
   })
   assert(job > 0, 'PowerShell terminal must start')
   eq(vim.fn.jobwait({ job }, 15000)[1], 0, 'PowerShell terminal exit')
-  assert(table.concat(lines, '\n'):find('terminal-ok', 1, true), 'terminal output')
+  assert(vim.wait(5000, function()
+    return table.concat(vim.api.nvim_buf_get_lines(buffer, 0, -1, false), '\n'):find('terminal-ok', 1, true)
+  end, 20), 'terminal output')
 end
 
 local function integration()
