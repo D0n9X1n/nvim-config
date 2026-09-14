@@ -21,7 +21,6 @@ return {
   { 'pangloss/vim-javascript',        ft = { 'javascript', 'javascriptreact' } },
   { 'jparise/vim-graphql',            ft = { 'graphql' } },
   { 'HerringtonDarkholme/yats.vim',   ft = { 'typescript', 'typescriptreact' } },
-  { 'Quramy/tsuquyomi',               ft = { 'typescript' } },
   { 'tomlion/vim-solidity',           ft = { 'solidity' } },
 
   -- Formatter / Linting

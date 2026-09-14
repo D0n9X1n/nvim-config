@@ -826,13 +826,13 @@ assert_not_eager typescript-vim
 assert_not_eager vim-javascript
 assert_not_eager vim-graphql
 assert_not_eager yats.vim
-assert_not_eager tsuquyomi
+nvim_probe "TypeScript has no legacy Tsuquyomi client" +"lua assert(require('lazy.core.config').plugins.tsuquyomi == nil, 'legacy TypeScript client must not be installed')"
 assert_not_eager vim-solidity
 assert_loads_on_ft typescript-vim ts
 assert_loads_on_ft vim-javascript  js
 assert_loads_on_ft vim-graphql     graphql
 assert_loads_on_ft yats.vim        ts
-assert_loads_on_ft tsuquyomi       ts
+nvim_probe "TypeScript syntax does not start a legacy client" +"e scratch.ts" +"lua assert(vim.fn.exists(':TsuquyomiOpen') == 0, 'legacy TypeScript commands must remain absent')"
 assert_loads_on_ft vim-solidity    sol
 assert_not_eager typescript-tools.nvim
 assert_loads_on_ft typescript-tools.nvim ts

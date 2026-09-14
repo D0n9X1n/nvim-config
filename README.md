@@ -34,7 +34,7 @@ brew install ripgrep the_silver_searcher universal-ctags fzf
 npm install -g @olrtg/emmet-language-server   # for HTML/CSS Emmet
 ```
 
-Install language servers for the languages you use (e.g. `pyright`, `gopls`, `clangd`, `lua-language-server`). UltiSnips and Gundo require a working Neovim Python 3 provider; check it with `:checkhealth vim.provider`.
+Install language servers for the languages you use (e.g. `pyright`, `gopls`, `clangd`, `lua-language-server`). TypeScript and JavaScript use `typescript-tools.nvim` with an installed TypeScript `tsserver`; the redundant legacy Tsuquyomi client is removed. UltiSnips and Gundo require a working Neovim Python 3 provider; check it with `:checkhealth vim.provider`.
 
 ## Installation
 
