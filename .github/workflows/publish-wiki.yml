@@ -35,10 +35,8 @@ jobs:
   publish:
     name: Publish Home
     needs: validate
-    # Manual dispatch from main only, and only once the repository variable is
-    # deliberately switched on after the first Wiki page exists and is reviewed.
     if: >-
-      github.event_name == 'workflow_dispatch' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       github.ref == 'refs/heads/main' &&
       vars.WIKI_PUBLISH_ENABLED == 'true'
     runs-on: ubuntu-24.04

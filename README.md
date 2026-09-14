@@ -325,7 +325,7 @@ The pipeline must pass on Windows before native support is considered verified. 
 
 The Wiki home page is generated from this README; edit documentation here rather than maintaining a second copy. Pull requests validate the rendered page and local links without publishing credentials. The publisher preserves unrelated Wiki pages, refuses unmarked existing Home content, detects the remote default branch, and never force-pushes.
 
-Wiki publication starts **disabled**. First create the Wiki's initial page through GitHub, review its contents, and explicitly adopt the generated Home marker. Then enable the repository variable `WIKI_PUBLISH_ENABLED=true` and run the main-branch manual publishing workflow. Verify a publish and an unchanged rerun before considering automatic publication. A missing Wiki or disabled publisher is not a successful live-publishing test.
+Wiki publication runs automatically after pushes to `main` when `WIKI_PUBLISH_ENABLED=true`; manual dispatch from `main` is also supported. PRs only validate and never publish. The initial live publish and unchanged rerun have been verified. Unset or disable the variable to pause publishing. For a new repository, first initialize the Wiki and explicitly adopt `<!-- nvim-config:managed-home -->` before enabling the workflow; unmarked handwritten Home content is never overwritten.
 
 Releases follow a reviewed flow:
 
