@@ -62,7 +62,9 @@ jobs:
         run: |
           & .\scripts\windows-dependencies.ps1 -Mode Install
           if ($LASTEXITCODE -ne 0) { throw 'Windows dependency installation failed' }
-      - name: Exclude Git Bash from the test path
+      - name: Select native shell and exclude Git Bash
+        env:
+          TEST_SHELL: ${{ matrix.shell }}
         run: |
           $git = (Get-Command git.exe -ErrorAction Stop).Source
           $gitDirectory = Split-Path -Parent $git
@@ -71,7 +73,8 @@ jobs:
           }
           if (-not (Test-Path -LiteralPath (Join-Path $gitDirectory 'git.exe'))) { throw 'Native Git launcher not found' }
           $paths = $env:PATH -split ';' | Where-Object {
-            $_ -and (($_ -ieq "$env:SystemRoot\System32") -or -not (Test-Path -LiteralPath (Join-Path $_ 'bash.exe')))
+            $_ -and (($_ -ieq "$env:SystemRoot\System32") -or -not (Test-Path -LiteralPath (Join-Path $_ 'bash.exe'))) -and
+              ($env:TEST_SHELL -ne 'powershell' -or -not (Test-Path -LiteralPath (Join-Path $_ 'pwsh.exe')))
           }
           "PATH=$gitDirectory;$($paths -join ';')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Installer, shell, and build regressions

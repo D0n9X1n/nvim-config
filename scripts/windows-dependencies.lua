@@ -10,13 +10,7 @@ local function run(command, opts)
 end
 local function setup_shell()
   local requested = assert(vim.env.NVIM_WINDOWS_SHELL)
-  local executable = vim.fn.executable
-  vim.fn.executable = function(command)
-    if requested == 'powershell' and command == 'pwsh' then return 0 end
-    return executable(command)
-  end
   dofile(root .. '/lua/config/settings.lua')
-  vim.fn.executable = executable
   check(vim.o.shell == requested, 'test must use requested PowerShell')
 end
 local function tools(temp)

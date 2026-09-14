@@ -92,6 +92,10 @@ return {
             Copy-Item -LiteralPath $binary -Destination './bin/markdown-preview-win.exe' -Force
           } finally { Remove-Item -LiteralPath $temp -Recurse -Force }
         ]] }
+      else
+        local package = vim.json.decode(table.concat(vim.fn.readfile(plugin.dir .. '/package.json'), '\n'))
+        assert(type(package.version) == 'string' and package.version:match('^%d+%.%d+%.%d+$'), 'Invalid Markdown preview version')
+        command[#command + 1] = 'v' .. package.version
       end
       local result = vim.system(command, { cwd = plugin.dir .. '/app', text = true }):wait()
       if result.code ~= 0 or (vim.fn.has('win32') == 1
