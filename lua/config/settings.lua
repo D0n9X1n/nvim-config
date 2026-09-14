@@ -60,6 +60,22 @@ opt.hidden = true
 opt.ttyfast = true
 opt.mouse = 'a'
 
+if vim.fn.has('win32') == 1 then
+  local shell = vim.fn.executable('pwsh') == 1 and 'pwsh'
+    or vim.fn.executable('powershell') == 1 and 'powershell'
+  if shell then
+    opt.shell = shell
+    opt.shellcmdflag = '-NoLogo -NoProfile -Command '
+      .. '[Console]::InputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();'
+      .. "$PSDefaultParameterValues['Out-File:Encoding']='utf8';"
+    opt.shellpipe = '> %s 2>&1'
+    opt.shellredir = '> %s 2>&1'
+    opt.shellquote = ''
+    opt.shellxquote = ''
+    opt.shelltemp = false
+  end
+end
+
 -- Line number settings
 opt.relativenumber = false
 opt.number = true

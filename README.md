@@ -38,6 +38,8 @@ Install language servers for the languages you use (e.g. `pyright`, `gopls`, `cl
 
 ## Installation
 
+### macOS / Linux
+
 ```bash
 cd /path/to/nvim-config
 ./install.sh
@@ -58,6 +60,34 @@ On first launch, lazy.nvim auto-installs plugins. Treesitter loads eagerly using
 ```
 
 Parser installation requires a C compiler and `tree-sitter` CLI 0.26.1+ from your package manager (not npm), plus `tar` and `curl`. Files without a parser remain editable using their normal syntax and indentation.
+
+### Windows / PowerShell
+
+Use native Windows Neovim 0.12+ and Git on `PATH`. PowerShell 7 is recommended; the installer also supports Windows PowerShell 5.1. Bash, WSL, administrator rights, and Developer Mode are not required.
+
+```powershell
+git clone https://github.com/D0n9X1n/nvim-config.git
+Set-Location nvim-config
+.\install.ps1
+nvim
+```
+
+The PowerShell installer:
+
+- Queries Neovim's `stdpath('config')` (normally `$env:LOCALAPPDATA\nvim`), honoring `XDG_CONFIG_HOME` and `NVIM_APPNAME`.
+- Copies public runtime files instead of creating symlinks. Rerun it after updating the checkout.
+- Preserves `lua/config/private.lua`, `lua/config/private_config.lua`, and unrelated existing files; never imports private files from the checkout.
+- Stages the installation before replacing the old config and keeps an independent sibling `*.backup.*` directory. An unchanged rerun creates no additional backup. If activation fails, it attempts to restore the old config.
+- Refuses junctions/symlinks and overlapping source/destination paths rather than modifying linked files. Migrate those layouts manually first.
+- Reports missing optional tools without installing packages. `-NoDeps` skips that report. It does not change PowerShell's execution policy; if local policy blocks scripts, use your organization's approved procedure.
+
+To recover a backup, close Neovim, move the current config aside, and move the printed backup directory back to the original config path. Do not delete the current config before checking whether it contains newer private edits.
+
+Install the optional tools you need using your preferred Windows package manager: `rg` (Telescope live grep), `ag`, `fzf`, Universal Ctags, Python plus `pynvim`, and language servers. Check the Python provider with `:checkhealth vim.provider`. Treesitter parser installation additionally needs a Windows C compiler, `tree-sitter` CLI 0.26.1+, `tar`, and `curl`; it remains an explicit `:TSInstall` step.
+
+On Windows, Neovim selects `pwsh` when available, otherwise `powershell`, including for `,t` and `:!` commands. Personal shell overrides can go in `private_config.lua`. Markdown preview uses its upstream Windows installer rather than Bash and downloads a prebuilt executable during plugin setup.
+
+**Known limits:** QuickRun's bundled C/C++ commands use Unix executable names; configure native commands through `g:quickrun_known_file_types` in your private overrides. Its multi-command defaults use `&&`, which Windows PowerShell 5.1 does not support. This is not a guarantee that every legacy plugin's external command works unchanged on Windows.
 
 ### Manual
 
@@ -245,6 +275,13 @@ git -C /path/to/nvim-config pull --ff-only
 /path/to/nvim-config/install.sh --no-deps
 ```
 
+On Windows, run from your original checkout:
+
+```powershell
+git pull --ff-only
+.\install.ps1 -NoDeps
+```
+
 Use the original checkout path, not the installer-created `~/.config/nvim` directory (which is not a Git checkout). For a manual clone directly at `~/.config/nvim`, that is your checkout path. Then run `:Lazy sync` inside Neovim.
 
 ## Validation
@@ -254,6 +291,21 @@ bash scripts/smoke.sh
 ```
 
 Requires Python 3 (including Neovim's Python provider), Neovim 0.12+, and the plugins already installed. Tests copy tracked public runtime files into a temporary config, omit private overrides, isolate data/state/cache and lockfiles, disable ShaDa, and refuse plugin/parser downloads. The matrix includes installer fixtures, harness failure controls, buffer/tab safety, Treesitter highlighting/indentation, and existing directory-startup/diagnostic checks. Missing test prerequisites fail explicitly.
+
+### Windows pipeline
+
+`.github/workflows/windows.yml` runs on pull requests, pushes to `main`, and manual dispatch. Separate `windows-2022` jobs use Windows PowerShell 5.1 and PowerShell 7, with Git Bash directories excluded from the test `PATH`. They download checksum-verified Neovim 0.12.5, install the Python provider, run disposable installer fixtures and real PowerShell command/terminal probes, then install plugins into isolated CI directories and validate configuration startup plus the Markdown preview Windows binary. Actions are commit-pinned, credentials are not persisted, and workflow permissions are read-only.
+
+Run the non-network regression suite locally on Windows:
+
+```powershell
+powershell.exe -NoProfile -File .\scripts\windows-regression.ps1
+pwsh -NoProfile -File .\scripts\windows-regression.ps1
+```
+
+It requires Neovim and Git but does not load your personal configuration, install plugins, or call a package manager. The CI-only `-Integration` mode deliberately loads the selected installed config; do not use it against private/live configuration. Plugin installation in CI requires network access. Browser rendering and every optional language tool are not covered; manually verify `,t`, `:!Write-Output hi`, Telescope searches, and Markdown preview on your machine.
+
+The pipeline must pass on Windows before native support is considered verified. Local macOS Lua branch tests and workflow linting are not substitutes for a hosted Windows run.
 
 ## Credits
 
