@@ -73,7 +73,32 @@ return {
   {
     'iamcco/markdown-preview.nvim',
     build = function(plugin)
-      vim.system({ 'bash', 'install.sh' }, { cwd = plugin.dir .. '/app' }):wait()
+      local command = { 'bash', 'install.sh' }
+      if vim.fn.has('win32') == 1 then
+        command = { 'powershell', '-NoLogo', '-NoProfile', '-NonInteractive', '-Command', [[
+          $ErrorActionPreference = 'Stop'
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          $version = (Get-Content -LiteralPath '../package.json' -Raw | ConvertFrom-Json).version
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid Markdown preview version' }
+          $temp = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString('N'))
+          $null = [IO.Directory]::CreateDirectory($temp)
+          try {
+            $zip = Join-Path $temp 'preview.zip'
+            Invoke-WebRequest -UseBasicParsing "https://github.com/iamcco/markdown-preview.nvim/releases/download/v$version/markdown-preview-win.zip" -OutFile $zip
+            Expand-Archive -LiteralPath $zip -DestinationPath $temp
+            $binary = Join-Path $temp 'markdown-preview-win.exe'
+            if (-not (Test-Path -LiteralPath $binary)) { throw 'Windows preview executable missing from archive' }
+            $null = [IO.Directory]::CreateDirectory((Join-Path $PWD 'bin'))
+            Copy-Item -LiteralPath $binary -Destination './bin/markdown-preview-win.exe' -Force
+          } finally { Remove-Item -LiteralPath $temp -Recurse -Force }
+        ]] }
+      end
+      local result = vim.system(command, { cwd = plugin.dir .. '/app', text = true }):wait()
+      if result.code ~= 0 or (vim.fn.has('win32') == 1
+        and vim.fn.filereadable(plugin.dir .. '/app/bin/markdown-preview-win.exe') ~= 1) then
+        error('Markdown preview installation failed (exit ' .. result.code .. '): '
+          .. (result.stderr or '') .. (result.stdout or ''))
+      end
     end,
     cmd = { 'MarkdownPreview', 'MarkdownPreviewStop', 'MarkdownPreviewToggle' },
     ft = { 'markdown' },
