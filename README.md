@@ -171,8 +171,11 @@ Ag results use an unlisted quickfix utility window, not an editor tab. The buffe
 | `<C-t>` | New tab |
 | `,tt` | Return to the previous tab |
 | `,t` | Open a terminal split |
+| `<C-[>` / `<C-]>` | Leave terminal-input mode with either key; keep the job running |
 
 Bufferline follows the latest `main` branch of `MOSconfig/bufferline.nvim` (updated with `:Lazy update`), with up to three wrapped rows above the editor area only. Neo-tree stays full-height on the left and remains available with `,n`; no repeated Explorer placeholder is needed.
+
+A full-width system strip above the tabs adds breathing room: a red sloped hostname, muted CPU usage/free RAM/network-interface readings, and a blue sloped clock. `lua/config/topbar.lua` samples local libuv counters every five seconds without shell commands or downloads. `FREE` means free memory, not memory pressure; `NET` names an available non-loopback interface, not verified Internet access or transfer speed. CPU shows `--` until the second sample. Narrow screens drop details; short screens hide the strip. Its unlisted scratch split and blank separator reserve two rows, return focus to the previous window, and leave the bottom statusline and rmux unchanged.
 
 Opening a named file removes unused, empty, unmodified `[No Name]` buffers. Unnamed buffers containing text, unsaved changes, or displayed in another window are preserved.
 
@@ -187,7 +190,7 @@ Adjust `tab_size` (currently `16`) in `lua/config/plugins/bufferline.lua` to cha
 
 Multi-row uses an extra header split. `multiline.enabled` is the only renderer switch: closing splits, `:only`, or temporarily insufficient space never enables native tabs. The header is rebuilt when the layout permits. Before saving a session, explicitly disable multiline to avoid serializing its scratch window. To select native rendering, set `multiline.enabled = false` in `lua/config/plugins/bufferline.lua` and restart.
 
-`,t` waits for the mapping timeout because `,tt` shares its prefix. `*` searches backward and `#` searches forward; both center the result.
+`,t` waits for the mapping timeout because `,tt` shares its prefix. In terminal-input mode, either `Ctrl+[` or `Ctrl+]` returns to Normal mode without stopping the shell/job. Terminals that encode `Ctrl+[` as Escape also make Escape leave terminal-input mode. `*` searches backward and `#` searches forward; both center the result.
 
 ### EasyMotion
 

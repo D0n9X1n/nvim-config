@@ -310,6 +310,11 @@ local tests = {
     eq(vim.fn.maparg(',gs', 'n'), ':Git status<CR>', 'safe Git status mapping')
     eq(vim.fn.maparg(',wr', 'n'), ':set wrap! wrap?<CR>', 'wrap mapping preserved')
     eq(vim.fn.maparg(',t', 'n'), ':split | terminal<CR>', 'terminal mapping preserved without executing it')
+    for _, key in ipairs({ '<C-[>', '<C-]>' }) do
+      local mapping = vim.fn.maparg(key, 't', false, true)
+      eq(mapping.rhs, '<C-\\><C-n>', key .. ' exits terminal-input mode in one key')
+      eq(mapping.noremap, 1, key .. ' is nonrecursive')
+    end
     callback(',tt')
     eq(vim.fn.maparg('*', 'n'), '#zz', 'backward word search is centered')
     eq(vim.fn.maparg('#', 'n'), '*zz', 'forward word search is centered')

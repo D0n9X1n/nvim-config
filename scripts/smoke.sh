@@ -922,6 +922,7 @@ nvim_probe "neo-tree.nvim is eager (directory hijack ready at startup)" +"lua $(
 nvim_probe "opening files removes only unused empty unnamed buffers" +"lua dofile(vim.env.NVIM_SMOKE_EMPTY_BUFFER)"
 nvim_probe "Bufferline detached clone updates main and writes its lockfile" +"lua dofile(vim.env.NVIM_SMOKE_REPO .. '/scripts/bufferline-update-regression.lua')"
 nvim_probe "Bufferline formatter and indicator keep stable width" +"lua dofile(vim.env.NVIM_SMOKE_BUFFERLINE_CONFIG)"
+nvim_probe "Top system strip preserves layout, focus, and telemetry" +"lua dofile(vim.env.NVIM_SMOKE_REPO .. '/scripts/topbar-regression.lua')"
 nvim_probe "Bufferline header keyboard navigation preserves editor mappings" +"lua dofile(vim.env.NVIM_SMOKE_HEADER)"
 nvim_probe "nvim <directory> settles to one persistent Neo-tree" "$REPO_DIR" +"let g:smoke_case='startup'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 nvim_probe "opening first Neo-tree file preserves tree and listed buffers" "$REPO_DIR" +"let g:smoke_case='first_file'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
