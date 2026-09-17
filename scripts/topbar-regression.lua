@@ -5,34 +5,52 @@ local function text(chunks)
   for _, chunk in ipairs(chunks) do parts[#parts + 1] = chunk[1] end
   return table.concat(parts)
 end
-local snapshot = { host = 'host%name', cpu = 'CPU 25%', memory = 'FREE 2.0 GiB', network = 'NET en0', clock = '12:34' }
-for _, width in ipairs({ 1, 8, 12, 20, 40, 80, 160 }) do
-  local output = text(topbar.format(width, snapshot))
-  assert(vim.fn.strdisplaywidth(output) == width, 'top strip must fit width ' .. width)
+for _, count in ipairs({ 0, 1, 12, 9999 }) do
+  for width = 0, 160 do
+    local chunks = topbar.format(width, { host = 'host%name', unsaved = count })
+    local output = text(chunks)
+    assert(vim.fn.strdisplaywidth(output) == width, 'top strip must fit width ' .. width)
+    if #chunks == 7 then
+      assert(chunks[2][2] == 'SystemBarHost', 'hostname must use the left red capsule')
+      assert(chunks[4][1]:match('^  +$'), 'middle must contain only blank space')
+      local group = count > 0 and 'SystemBarUnsavedWarning' or 'SystemBarUnsaved'
+      assert(chunks[6][1] == '  ' .. count .. ' ' and chunks[6][2] == group, 'right capsule must warn only when the count is positive')
+      assert(chunks[5][2] == group .. 'Edge' and chunks[7][2] == group .. 'Edge', 'slopes must match the counter color')
+    end
+    if width >= vim.fn.strdisplaywidth('  ' .. count .. ' ') then
+      assert(output:sub(-#('  ' .. count .. ' ')) == '  ' .. count .. ' ', 'counter must be right-aligned even at zero')
+    end
+  end
 end
-local output = text(topbar.format(100, snapshot))
-assert(output:find('host%%name') and output:find('CPU 25%%') and output:find('12:34', 1, true), 'literal text and metrics must survive')
-assert(not text(topbar.format(25, snapshot)):find('NET', 1, true), 'network detail hides first on narrow screens')
-snapshot.host = '界界界界界界界界界界'
-assert(vim.fn.strdisplaywidth(text(topbar.format(24, snapshot))) == 24, 'wide hostnames stay bounded')
+local wide = topbar.format(80, { host = 'host%name', unsaved = 0 })
+assert(#wide == 7 and text(wide):find(' host%%name ') == 1, 'hostname must remain on the left')
+assert(text(wide):match('  0 $'), 'clean editor must keep the zero indicator visible')
+for width = 0, 160 do
+  vim.o.columns = math.max(12, width)
+  local output = text(topbar.format(width, { host = '界界界界界\n', unsaved = 0 }))
+  assert(vim.fn.strdisplaywidth(output) == width and not output:find('%c'), 'hostnames must be sanitized and fit narrow widths')
+end
 
-local saved = { cpu_info = vim.uv.cpu_info, get_free_memory = vim.uv.get_free_memory, interface_addresses = vim.uv.interface_addresses }
-local ok, err = xpcall(function()
-  vim.uv.cpu_info = function() return { { times = { user = 100, sys = 0, nice = 0, idle = 100, irq = 0 } } } end
-  vim.uv.get_free_memory = function() return 2 * 1024 ^ 3 end
-  vim.uv.interface_addresses = function() return { lo = { { internal = true, ip = '127.0.0.1' } }, en0 = { { internal = false, ip = '10.0.0.1' } } } end
-  topbar.sample()
-  vim.uv.cpu_info = function() return { { times = { user = 125, sys = 0, nice = 0, idle = 175, irq = 0 } } } end
-  local data = topbar.sample()
-  assert(data.cpu == 'CPU 25%' and data.memory == 'FREE 2.0 GiB' and data.network == 'NET en0', 'telemetry uses measured deltas and explicit units')
-  vim.uv.cpu_info = function() return nil end
-  vim.uv.get_free_memory = function() return nil end
-  vim.uv.interface_addresses = function() return nil end
-  data = topbar.sample()
-  assert(data.cpu == 'CPU --' and data.memory == 'FREE --' and data.network == 'NET --', 'unavailable metrics must not claim zero or connectivity')
-end, debug.traceback)
-for name, fn in pairs(saved) do vim.uv[name] = fn end
-assert(ok, err)
+local baseline = topbar.sample().unsaved
+local dirty = api.nvim_create_buf(true, false)
+local utility = api.nvim_create_buf(false, true)
+api.nvim_buf_set_lines(dirty, 0, -1, false, { 'unsaved unnamed buffer' })
+api.nvim_buf_set_lines(utility, 0, -1, false, { 'utility text' })
+vim.bo[utility].modified = true
+assert(topbar.sample().unsaved == baseline + 1, 'listed unnamed edits count; unlisted utility buffers do not')
+local original = api.nvim_get_current_buf()
+api.nvim_set_current_buf(dirty)
+vim.cmd('vsplit')
+assert(topbar.sample().unsaved == baseline + 1, 'a buffer shown in multiple splits counts once')
+vim.cmd('tab split')
+assert(topbar.sample().unsaved == baseline + 1, 'a buffer shown in multiple tabs counts once')
+vim.cmd('tabclose')
+vim.cmd('close')
+api.nvim_set_current_buf(original)
+vim.bo[dirty].modified = false
+assert(topbar.sample().unsaved == baseline, 'saved buffers must stop counting')
+api.nvim_buf_delete(dirty, { force = true })
+api.nvim_buf_delete(utility, { force = true })
 
 vim.o.lines = 40
 vim.o.columns = 120
@@ -80,7 +98,15 @@ topbar.refresh()
 assert(bar(), 'strip returns with enough space')
 vim.cmd('colorscheme apollo')
 topbar.refresh()
-assert(vim.wait(1000, function() return api.nvim_get_hl(0, { name = 'SystemBarClock', link = false }).bg == 0x365b80 end, 10), 'clock must match blue active tabs')
+assert(vim.wait(1000, function()
+  local normal = api.nvim_get_hl(0, { name = 'Normal', link = false })
+  local unsaved = api.nvim_get_hl(0, { name = 'SystemBarUnsaved', link = false })
+  local host = api.nvim_get_hl(0, { name = 'SystemBarHost', link = false })
+  local red = api.nvim_get_hl(0, { name = 'DiagnosticError', link = false }).fg
+  local warning = api.nvim_get_hl(0, { name = 'SystemBarUnsavedWarning', link = false })
+  return unsaved.bg == 0x365b80 and unsaved.fg == 0xffffff and unsaved.bold and host.bg == red
+    and warning.bg == 0xfe8019 and warning.fg == 0x141617 and warning.bold
+end, 10), 'hostname must be red and the unsaved counter blue')
 api.nvim_exec_autocmds('SessionLoadPre', {})
 assert(not bar(), 'session loading closes the scratch strip')
 api.nvim_exec_autocmds('SessionLoadPost', {})
