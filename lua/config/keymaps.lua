@@ -31,9 +31,10 @@ local function close_buffer_smart(buf)
     return
   end
 
+  local force = vim.bo[original].buftype == 'terminal'
   local windows = vim.fn.win_findbuf(original)
   if #windows == 0 then
-    vim.api.nvim_buf_delete(original, { force = false })
+    vim.api.nvim_buf_delete(original, { force = force })
     return
   end
   for _, win in ipairs(windows) do
@@ -71,7 +72,7 @@ local function close_buffer_smart(buf)
       vim.api.nvim_win_set_buf(win, replacement)
     end
   end
-  vim.api.nvim_buf_delete(original, { force = false })
+  vim.api.nvim_buf_delete(original, { force = force })
 end
 
 -- Disable vertical arrow keys in normal mode

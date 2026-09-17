@@ -166,7 +166,7 @@ Ag results use an unlisted quickfix utility window, not an editor tab. The buffe
 | Key | Action |
 |-----|--------|
 | `[b` / `]b` | Previous / next buffer |
-| `,q` | Close buffer; refuse unsaved changes; leave an empty buffer after the last file |
+| `,q` | Close buffer; force-stop terminal jobs; refuse unsaved files; leave an empty buffer after the last file |
 | `<C-h/j/k/l>` | Navigate splits |
 | `<C-t>` | New tab |
 | `,tt` | Return to the previous tab |
@@ -182,7 +182,7 @@ Adjust `tab_size` (currently `16`) in `lua/config/plugins/bufferline.lua` to cha
 - Use `h`/`l` to move between buffer entries and `j`/`k` to move between rows, including overflow. These keys choose a candidate without switching your file.
 - Press Enter to open the candidate in the editing window, or Escape to return without selecting. `:q` while in the header closes the header and returns to the editor.
 - The active file has a full blue tab background; the keyboard candidate uses a distinct full-tab search highlight. Tabs use Bufferline’s `slope` style by default. One bottom statusline follows the editing file even while the header is focused; the scratch header has no separate `[No Name]` banner. Close buttons are hidden, but modified-file indicators remain.
-- Press `x` in the header to close the highlighted candidate. Open files use the same smart-close action as `,q`, preserving splits across tabpages; hidden files are removed without switching the editor. Unsaved files and files in locked windows are refused. Selection moves to a surviving neighbor after closure and stays in the header.
+- Press `x` in the header to close the highlighted candidate. Open files use the same smart-close action as `,q`, preserving splits across tabpages; hidden files are removed without switching the editor. Terminal buffers are force-closed, terminating their shell/job and potentially interrupting running work. Unsaved files and buffers in locked windows are still refused. Selection moves to a surviving neighbor after closure and stays in the header.
 - Scroll over the header or click the Nerd Font chevrons to browse overflow; click a buffer to open it directly. Terminal mouse reporting must be enabled; user mouse mappings can consume those events.
 
 Multi-row uses an extra header split. `multiline.enabled` is the only renderer switch: closing splits, `:only`, or temporarily insufficient space never enables native tabs. The header is rebuilt when the layout permits. Before saving a session, explicitly disable multiline to avoid serializing its scratch window. To select native rendering, set `multiline.enabled = false` in `lua/config/plugins/bufferline.lua` and restart.

@@ -367,6 +367,46 @@ keys('<Esc><C-k>x')
 assert(vim.fn.buflisted(active) == 0, 'Header x must close the active file')
 assert(api.nvim_get_current_win() == handle.win and runtime.active(), 'Active close must retain usable header')
 keys('<Esc>')
+for _, hidden in ipairs({ false, true }) do
+  local editing = api.nvim_get_current_buf()
+  if not hidden then vim.cmd('vsplit') end
+  local terminal_win = api.nvim_get_current_win()
+  local terminal = api.nvim_create_buf(true, false)
+  api.nvim_set_current_buf(terminal)
+  local job = vim.fn.jobstart({ vim.v.progpath, '-u', 'NONE', '-i', 'NONE', '-n' }, { term = true })
+  assert(job > 0 and vim.fn.jobwait({ job }, 0)[1] == -1, 'Header fixture must have a live terminal')
+  local pid = vim.fn.jobpid(job)
+  local ok, err = xpcall(function()
+    keys('<C-\\><C-n>')
+    if hidden then api.nvim_set_current_buf(editing) end
+    api.nvim_set_current_win(editor)
+    runtime.flush('test')
+    keys('<C-k>')
+    handle = assert(runtime.handles()[api.nvim_get_current_tabpage()])
+    for _ = 1, #handle.frame.positions do
+      if handle.candidate == terminal then break end
+      keys('l')
+    end
+    assert(handle.candidate == terminal, 'Header keys must select the terminal: ' .. vim.inspect({
+      hidden = hidden, candidate = handle.candidate, terminal = terminal,
+      current = api.nvim_get_current_win(), header = handle.win, mode = api.nvim_get_mode().mode,
+    }))
+    local windows = api.nvim_list_wins()
+    keys('x')
+    assert(vim.fn.buflisted(terminal) == 0, 'Header x must remove a running terminal')
+    assert(vim.wait(3000, function()
+      return vim.fn.jobwait({ job }, 0)[1] ~= -1 and not vim.uv.kill(pid, 0)
+    end, 10), 'Header x must stop the terminal process')
+    assert(vim.deep_equal(api.nvim_list_wins(), windows), 'Terminal x must preserve splits')
+    assert(api.nvim_get_current_win() == handle.win and runtime.active(), 'Terminal x must retain header focus')
+    assert(handle.candidate ~= terminal and vim.fn.buflisted(handle.candidate) == 1, 'Terminal x must select a surviving neighbor')
+    assert(api.nvim_win_get_buf(editor) == editing, 'Terminal x must preserve the other editing buffer')
+    keys('<Esc>')
+    if not hidden then api.nvim_win_close(terminal_win, false) end
+  end, debug.traceback)
+  if vim.fn.jobwait({ job }, 0)[1] == -1 then vim.fn.jobstop(job) end
+  assert(ok, err)
+end
 api.nvim_buf_set_lines(0, 0, -1, false, { 'first line', 'second line', 'third line' })
 api.nvim_win_set_cursor(editor, { 1, 0 })
 keys('jl')
