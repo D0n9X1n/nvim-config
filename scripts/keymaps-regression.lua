@@ -90,7 +90,93 @@ local function assert_refused(buf)
   assert(type(notifications[1].message) == 'string' and #notifications[1].message > 0, 'warning explains refusal')
 end
 
+local function with_terminal(run)
+  local buf = reset()
+  local job = vim.fn.jobstart({ vim.v.progpath, '-u', 'NONE', '-i', 'NONE', '-n' }, { term = true })
+  assert(job > 0 and vim.fn.jobwait({ job }, 0)[1] == -1, 'terminal job must be running')
+  local pid = vim.fn.jobpid(job)
+  local ok, err = xpcall(function() run(buf, job, pid) end, debug.traceback)
+  if vim.fn.jobwait({ job }, 0)[1] == -1 then vim.fn.jobstop(job) end
+  assert(ok, err)
+end
+
+local function assert_terminal_closed(buf, job, pid)
+  assert(vim.fn.buflisted(buf) == 0, 'terminal buffer must be removed')
+  assert(vim.wait(3000, function()
+    return vim.fn.jobwait({ job }, 0)[1] ~= -1 and not vim.uv.kill(pid, 0)
+  end, 10), 'closing the terminal must stop its process')
+end
+
 local tests = {
+  { 'non-terminal buffers never force deletion', function()
+    for _, hidden in ipairs({ false, true }) do
+      local buf = named(reset())
+      if hidden then api.nvim_set_current_buf(named(api.nvim_create_buf(true, false))) end
+      local delete, forced = api.nvim_buf_delete, nil
+      api.nvim_buf_delete = function(target, options)
+        if target == buf then forced = options.force end
+        return delete(target, options)
+      end
+      local ok, err = pcall(require('config.keymaps').close_buffer, buf)
+      api.nvim_buf_delete = delete
+      assert(ok, err)
+      eq(forced, false, 'ordinary buffer deletion must not use force')
+      eq(vim.fn.buflisted(buf), 0, 'ordinary buffer must be closed')
+    end
+  end },
+  { 'last running terminal leaves an empty buffer', function()
+    with_terminal(function(buf, job, pid)
+      local windows = api.nvim_tabpage_list_wins(0)
+      close()
+      assert_terminal_closed(buf, job, pid)
+      assert_replaced(buf, windows)
+    end)
+  end },
+  { 'hidden running terminal preserves editing context', function()
+    with_terminal(function(buf, job, pid)
+      local editor = named(api.nvim_create_buf(true, false))
+      api.nvim_set_current_buf(editor)
+      local win, windows = api.nvim_get_current_win(), api.nvim_list_wins()
+      require('config.keymaps').close_buffer(buf)
+      assert_terminal_closed(buf, job, pid)
+      eq(api.nvim_get_current_win(), win, 'hidden close keeps focus')
+      eq(api.nvim_get_current_buf(), editor, 'hidden close keeps editing buffer')
+      eq(api.nvim_list_wins(), windows, 'hidden close keeps windows')
+    end)
+  end },
+  { 'running terminal preserves splits across tabpages', function()
+    with_terminal(function(buf, job, pid)
+      local replacement = named(api.nvim_create_buf(true, false))
+      local first = api.nvim_get_current_win()
+      vim.cmd('vsplit')
+      local second = api.nvim_get_current_win()
+      vim.cmd('tab split')
+      local third = api.nvim_get_current_win()
+      local windows = api.nvim_list_wins()
+      close()
+      assert_terminal_closed(buf, job, pid)
+      eq(api.nvim_list_wins(), windows, 'terminal close keeps all windows')
+      for _, win in ipairs({ first, second, third }) do
+        eq(api.nvim_win_get_buf(win), replacement, 'terminal view replaced')
+      end
+    end)
+  end },
+  { 'locked running terminal is refused without stopping its job', function()
+    with_terminal(function(buf, job, pid)
+      vim.wo.winfixbuf = true
+      local old_notify, warning = vim.notify, nil
+      vim.notify = function(message) warning = message end
+      local ok, err = pcall(close)
+      vim.notify = old_notify
+      vim.wo.winfixbuf = false
+      assert(ok, err)
+      assert(warning and warning:find('locked window', 1, true), 'locked terminal must warn')
+      eq(api.nvim_get_current_buf(), buf, 'locked terminal keeps its window')
+      eq(vim.fn.jobwait({ job }, 0)[1], -1, 'locked terminal job keeps running')
+      close()
+      assert_terminal_closed(buf, job, pid)
+    end)
+  end },
   { 'last named clean buffer', function()
     local original = named(reset())
     local windows = api.nvim_tabpage_list_wins(0)
@@ -224,6 +310,11 @@ local tests = {
     eq(vim.fn.maparg(',gs', 'n'), ':Git status<CR>', 'safe Git status mapping')
     eq(vim.fn.maparg(',wr', 'n'), ':set wrap! wrap?<CR>', 'wrap mapping preserved')
     eq(vim.fn.maparg(',t', 'n'), ':split | terminal<CR>', 'terminal mapping preserved without executing it')
+    for _, key in ipairs({ '<C-[>', '<C-]>' }) do
+      local mapping = vim.fn.maparg(key, 't', false, true)
+      eq(mapping.rhs, '<C-\\><C-n>', key .. ' exits terminal-input mode in one key')
+      eq(mapping.noremap, 1, key .. ' is nonrecursive')
+    end
     callback(',tt')
     eq(vim.fn.maparg('*', 'n'), '#zz', 'backward word search is centered')
     eq(vim.fn.maparg('#', 'n'), '*zz', 'forward word search is centered')

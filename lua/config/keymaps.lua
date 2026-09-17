@@ -31,9 +31,10 @@ local function close_buffer_smart(buf)
     return
   end
 
+  local force = vim.bo[original].buftype == 'terminal'
   local windows = vim.fn.win_findbuf(original)
   if #windows == 0 then
-    vim.api.nvim_buf_delete(original, { force = false })
+    vim.api.nvim_buf_delete(original, { force = force })
     return
   end
   for _, win in ipairs(windows) do
@@ -71,7 +72,7 @@ local function close_buffer_smart(buf)
       vim.api.nvim_win_set_buf(win, replacement)
     end
   end
-  vim.api.nvim_buf_delete(original, { force = false })
+  vim.api.nvim_buf_delete(original, { force = force })
 end
 
 -- Disable vertical arrow keys in normal mode
@@ -190,6 +191,8 @@ map('n', '<leader>f', ':Telescope live_grep<CR>', opts)
 map('n', '<leader>n', ':Neotree toggle<CR>', opts)
 map('n', '<leader>m', ':MarkdownPreviewToggle<CR>', opts)
 map('n', '<leader>t', ':split | terminal<CR>', opts)
+map('t', '<C-[>', '<C-\\><C-n>', opts)
+map('t', '<C-]>', '<C-\\><C-n>', opts)
 map('n', '<F9>', ':TagbarToggle<CR>', opts)
 map('n', '<leader>us', ':UltiSnipsEdit<CR>', opts)
 map('n', '<leader>jd', function() vim.lsp.buf.definition() end, opts)
