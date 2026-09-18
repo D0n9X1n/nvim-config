@@ -1,83 +1,42 @@
-local api, uv = vim.api, vim.uv
+local api = vim.api
 local M = {}
 local namespace = api.nvim_create_namespace('SystemBar')
-local windows, previous = {}, nil
-local timer, pending, busy, paused = nil, false, false, false
-local data = { host = uv.os_gethostname() or 'localhost', clock = os.date('%H:%M') }
+local windows = {}
+local started, pending, busy, paused = false, false, false, false
 
-local function clean(value)
-  return tostring(value):gsub('%c', '')
-end
-
-local function fit(value, width)
-  local result = ''
-  for _, char in ipairs(vim.fn.split(clean(value), '\\zs')) do
-    if vim.fn.strdisplaywidth(result .. char) > width then break end
-    result = result .. char
+function M.sample()
+  local count = 0
+  for _, buf in ipairs(api.nvim_list_bufs()) do
+    if api.nvim_buf_is_loaded(buf) and vim.bo[buf].buflisted and vim.bo[buf].modified then count = count + 1 end
   end
-  return result
+  return { host = vim.uv.os_gethostname() or 'localhost', unsaved = count }
 end
 
 function M.format(width, snapshot)
-  snapshot = snapshot or data
-  if width < 14 then
-    local host = fit(snapshot.host, width)
-    return { { host .. string.rep(' ', width - vim.fn.strdisplaywidth(host)), 'SystemBarHost' } }
+  snapshot = snapshot or M.sample()
+  local count = snapshot.unsaved or 0
+  local label = ' ' .. count
+  local group = count > 0 and 'SystemBarUnsavedWarning' or 'SystemBarUnsaved'
+  local right_size = vim.fn.strdisplaywidth(' ' .. label .. ' ')
+  if right_size > width then return { { string.rep(' ', width), 'SystemBar' } } end
+  local host = ''
+  local host_width = math.min(24, width - right_size - 6)
+  for _, char in ipairs(vim.fn.split((snapshot.host or ''):gsub('%c', ''), '\\zs')) do
+    if vim.fn.strdisplaywidth(host .. char) > host_width then break end
+    host = host .. char
   end
-  local host = fit(snapshot.host, math.min(24, width - 13))
-  local left, right = ' ' .. host .. ' ', ' ' .. snapshot.clock .. ' '
-  local available = width - vim.fn.strdisplaywidth(left .. right)
-  local fields = { snapshot.cpu, snapshot.memory, snapshot.network }
-  local middle = ''
-  for _, field in ipairs(fields) do
-    if field and vim.fn.strdisplaywidth(middle .. '  ' .. clean(field)) + 2 <= available then
-      middle = middle .. '  ' .. clean(field)
-    end
+  local left_size = host ~= '' and vim.fn.strdisplaywidth(' ' .. host .. ' ') or 0
+  local chunks = {}
+  if host ~= '' then
+    chunks[#chunks + 1] = { '', 'SystemBarHostEdge' }
+    chunks[#chunks + 1] = { ' ' .. host .. ' ', 'SystemBarHost' }
+    chunks[#chunks + 1] = { '', 'SystemBarHostEdge' }
   end
-  middle = middle .. string.rep(' ', math.max(0, available - vim.fn.strdisplaywidth(middle)))
-  return {
-    { '', 'SystemBarHostEdge' }, { ' ' .. host .. ' ', 'SystemBarHost' }, { '', 'SystemBarHostEdge' },
-    { middle, 'SystemBar' },
-    { '', 'SystemBarClockEdge' }, { ' ' .. snapshot.clock .. ' ', 'SystemBarClock' }, { '', 'SystemBarClockEdge' },
-  }
-end
-
-function M.sample()
-  local ok, cpus = pcall(uv.cpu_info)
-  local total, idle = 0, 0
-  if ok and cpus and #cpus > 0 then
-    for _, cpu in ipairs(cpus) do
-      for _, ticks in pairs(cpu.times) do total = total + ticks end
-      idle = idle + cpu.times.idle
-    end
-    data.cpu = 'CPU --'
-    if previous and total > previous.total and idle >= previous.idle then
-      local usage = 100 * (1 - (idle - previous.idle) / (total - previous.total))
-      data.cpu = ('CPU %.0f%%'):format(math.max(0, math.min(100, usage)))
-    end
-    previous = { total = total, idle = idle }
-  else
-    data.cpu, previous = 'CPU --', nil
-  end
-  local memory_ok, free = pcall(uv.get_free_memory)
-  data.memory = memory_ok and type(free) == 'number' and ('FREE %.1f GiB'):format(free / 1024 ^ 3) or 'FREE --'
-  local interfaces_ok, interfaces = pcall(uv.interface_addresses)
-  local ipv4, other = {}, {}
-  if interfaces_ok and interfaces then
-    for name, addresses in pairs(interfaces) do
-      for _, address in ipairs(addresses) do
-        if not address.internal then
-          other[name] = true
-          if address.ip and not address.ip:find(':', 1, true) then ipv4[name] = true end
-        end
-      end
-    end
-  end
-  local names = vim.tbl_keys(next(ipv4) and ipv4 or other)
-  table.sort(names)
-  data.network = 'NET ' .. (names[1] and fit(names[1], 12) or '--')
-  data.clock = os.date('%H:%M')
-  return vim.deepcopy(data)
+  chunks[#chunks + 1] = { string.rep(' ', width - left_size - right_size), 'SystemBar' }
+  chunks[#chunks + 1] = { '', group .. 'Edge' }
+  chunks[#chunks + 1] = { ' ' .. label .. ' ', group }
+  chunks[#chunks + 1] = { '', group .. 'Edge' }
+  return chunks
 end
 
 local function owns(win)
@@ -92,15 +51,17 @@ end
 
 local function highlights()
   local normal = api.nvim_get_hl(0, { name = 'Normal', link = false })
-  local inactive = api.nvim_get_hl(0, { name = 'BufferLineBackground', link = false })
   local selected = api.nvim_get_hl(0, { name = 'BufferLineBufferSelected', link = false })
   local red = api.nvim_get_hl(0, { name = 'DiagnosticError', link = false }).fg or 0xff3b30
   local background = normal.bg or 'NONE'
-  api.nvim_set_hl(0, 'SystemBar', { fg = inactive.fg or normal.fg, bg = background })
+  local blue = selected.bg or 0x365b80
+  api.nvim_set_hl(0, 'SystemBar', { fg = normal.fg, bg = background })
   api.nvim_set_hl(0, 'SystemBarHost', { fg = normal.bg or 0x141617, bg = red, bold = true })
-  api.nvim_set_hl(0, 'SystemBarClock', { fg = selected.fg or 0xffffff, bg = selected.bg or 0x365b80, bold = true })
   api.nvim_set_hl(0, 'SystemBarHostEdge', { fg = red, bg = background })
-  api.nvim_set_hl(0, 'SystemBarClockEdge', { fg = selected.bg or 0x365b80, bg = background })
+  api.nvim_set_hl(0, 'SystemBarUnsaved', { fg = selected.fg or 0xffffff, bg = blue, bold = true })
+  api.nvim_set_hl(0, 'SystemBarUnsavedEdge', { fg = blue, bg = background })
+  api.nvim_set_hl(0, 'SystemBarUnsavedWarning', { fg = 0x141617, bg = 0xfe8019, bold = true })
+  api.nvim_set_hl(0, 'SystemBarUnsavedWarningEdge', { fg = 0xfe8019, bg = background })
 end
 
 local function minimum_height(layout)
@@ -187,9 +148,9 @@ local function request()
 end
 
 function M.setup()
-  if timer then return end
+  if started then return end
+  started = true
   highlights()
-  M.sample()
   local group = api.nvim_create_augroup('SystemBar', { clear = true })
   api.nvim_create_autocmd({ 'WinEnter', 'BufEnter' }, {
     group = group,
@@ -213,7 +174,7 @@ function M.setup()
       request()
     end,
   })
-  api.nvim_create_autocmd({ 'VimEnter', 'WinClosed', 'TabEnter', 'TabClosed', 'VimResized' }, { group = group, callback = request })
+  api.nvim_create_autocmd({ 'VimEnter', 'WinClosed', 'TabEnter', 'TabClosed', 'VimResized', 'BufModifiedSet', 'BufAdd', 'BufDelete', 'BufWipeout', 'BufUnload', 'BufWritePost' }, { group = group, callback = request })
   api.nvim_create_autocmd('ColorScheme', { group = group, callback = function() vim.schedule(function() highlights(); M.refresh() end) end })
   api.nvim_create_autocmd('QuitPre', {
     group = group,
@@ -229,9 +190,7 @@ function M.setup()
   })
   api.nvim_create_autocmd('SessionLoadPre', { group = group, callback = function() paused = true; for tab in pairs(windows) do close(tab) end end })
   api.nvim_create_autocmd('SessionLoadPost', { group = group, callback = function() paused = false; request() end })
-  timer = uv.new_timer()
-  timer:start(5000, 5000, vim.schedule_wrap(function() if not paused then M.sample(); M.refresh() end end))
-  api.nvim_create_autocmd('VimLeavePre', { group = group, callback = function() paused = true; timer:stop(); timer:close() end })
+  api.nvim_create_autocmd('VimLeavePre', { group = group, callback = function() paused = true end })
   request()
 end
 
