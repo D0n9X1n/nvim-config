@@ -190,7 +190,29 @@ map('n', '<leader>p', ':Telescope find_files<CR>', opts)
 map('n', '<leader>f', ':Telescope live_grep<CR>', opts)
 map('n', '<leader>n', ':Neotree toggle<CR>', opts)
 map('n', '<leader>m', ':MarkdownPreviewToggle<CR>', opts)
-map('n', '<leader>t', ':split | terminal<CR>', opts)
+map('n', '<leader>t', function()
+  local api = vim.api
+  local function editor(win)
+    if not win or not api.nvim_win_is_valid(win) or api.nvim_win_get_tabpage(win) ~= api.nvim_get_current_tabpage()
+      or api.nvim_win_get_config(win).relative ~= '' or vim.wo[win].winfixbuf then return false end
+    local kind = vim.bo[api.nvim_win_get_buf(win)].buftype
+    return kind == '' or kind == 'terminal'
+  end
+  local target = api.nvim_get_current_win()
+  if not editor(target) then target = vim.fn.win_getid(vim.fn.winnr('#')) end
+  if not editor(target) then
+    target = nil
+    for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
+      if editor(win) then target = win; break end
+    end
+  end
+  if not target then
+    vim.notify('No unlocked editor window is available for a terminal.', vim.log.levels.WARN)
+    return
+  end
+  api.nvim_set_current_win(target)
+  vim.cmd('hide terminal')
+end, opts)
 map('t', '<C-[>', '<C-\\><C-n>', opts)
 map('t', '<C-]>', '<C-\\><C-n>', opts)
 map('n', '<F9>', ':TagbarToggle<CR>', opts)

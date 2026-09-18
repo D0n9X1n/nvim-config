@@ -510,6 +510,15 @@ local function run()
   end
 
   if case == 'startup' then
+    assert(vim.wait(1000, function()
+      return vim.bo.buftype == '' and vim.bo.filetype ~= 'neo-tree'
+        and vim.api.nvim_win_get_config(0).relative == ''
+    end, 10), 'directory startup must focus the editor, not Neo-tree or the buffer header')
+    local editor = vim.api.nvim_get_current_win()
+    vim.api.nvim_set_current_win(tree_win)
+    vim.wait(100)
+    assert(vim.api.nvim_get_current_win() == tree_win, 'explicit tree focus must not be stolen later')
+    vim.api.nvim_set_current_win(editor)
     return
   end
 
@@ -554,6 +563,37 @@ local function run()
   end, 10), 'opening the first file must leave only that file listed; got ' .. listed_buffer_summary())
 
   if case == 'first_file' then
+    return
+  end
+
+  if case == 'terminal' then
+    local api = vim.api
+    local editor, file = api.nvim_get_current_win(), api.nvim_get_current_buf()
+    api.nvim_buf_set_lines(file, 0, -1, false, { 'keep unsaved file text' })
+    local runtime = require('bufferline.multiline.runtime')
+    for _, source in ipairs({ 'editor', 'tree', 'header' }) do
+      runtime.flush('terminal-test')
+      local header = runtime.handles()[api.nvim_get_current_tabpage()].win
+      local windows = api.nvim_tabpage_list_wins(0)
+      api.nvim_set_current_win(source == 'tree' and tree_win or source == 'header' and header or editor)
+      local terminal, job
+      local ok, err = xpcall(function()
+        api.nvim_feedkeys(',t', 'xt', false)
+        terminal, job = api.nvim_get_current_buf(), vim.b.terminal_job_id
+        assert(api.nvim_get_current_win() == editor and vim.bo.buftype == 'terminal', 'terminal must reuse the main editor from ' .. source)
+        assert(job and vim.fn.jobwait({ job }, 0)[1] == -1, 'terminal shell must be running')
+        runtime.flush('terminal-test')
+        assert(vim.deep_equal(api.nvim_tabpage_list_wins(0), windows), 'terminal must not add or remove splits')
+        assert_tree_persisted()
+        assert(runtime.owns(header) and api.nvim_win_get_position(header)[1] == 1, 'terminal must stay below banner and header')
+        vim.cmd('buffer #')
+        assert(api.nvim_get_current_buf() == file and vim.bo.modified, 'previous file must keep unsaved edits')
+        assert(api.nvim_get_current_line() == 'keep unsaved file text', 'file text must be preserved')
+      end, debug.traceback)
+      if job and vim.fn.jobwait({ job }, 0)[1] == -1 then vim.fn.jobstop(job) end
+      if terminal and vim.bo[terminal].buftype == 'terminal' then api.nvim_buf_delete(terminal, { force = true }) end
+      assert(ok, err)
+    end
     return
   end
 
@@ -651,6 +691,84 @@ if not ok then
   vim.api.nvim_err_writeln(err)
   vim.cmd('cq')
 end
+LUA
+
+export NVIM_SMOKE_DIRECTORY_QUIT="$SMOKE_TMP/directory-quit.lua"
+cat > "$NVIM_SMOKE_DIRECTORY_QUIT" <<'LUA'
+for _, dirty in ipairs({ false, true }) do
+  local child = vim.fn.jobstart({ vim.v.progpath, '--embed', '--headless', '-i', 'NONE', '-n',
+    '--cmd', 'lua dofile(vim.env.NVIM_SMOKE_NO_INSTALL)', vim.env.NVIM_SMOKE_REPO }, { rpc = true })
+  local function lua(code) return vim.fn.rpcrequest(child, 'nvim_exec_lua', code, {}) end
+  local ok, err = xpcall(function()
+    assert(child > 0, 'directory quit probe must start')
+    assert(vim.wait(5000, function()
+      return lua([=[
+        local state = require('neo-tree.sources.manager').get_state('filesystem')
+        return state._ready and state.tree ~= nil and vim.bo.buftype == '' and vim.bo.modifiable
+          and vim.bo.filetype ~= 'neo-tree' and vim.bo.filetype ~= 'bufferline'
+          and vim.fn.isdirectory(vim.api.nvim_buf_get_name(0)) == 0
+          and vim.api.nvim_win_get_config(0).relative == ''
+      ]=]) == true
+    end, 20), 'directory startup must settle with editor focus')
+    if dirty then lua("vim.g.quit_test_buf = vim.api.nvim_get_current_buf(); vim.api.nvim_buf_set_lines(vim.g.quit_test_buf, 0, -1, false, { 'keep unsaved work' })") end
+    vim.fn.rpcrequest(child, 'nvim_input', ':q<CR>')
+    if dirty then
+      assert(vim.wait(1000, function()
+        return lua("return vim.api.nvim_exec2('messages', { output = true }).output:find('E37', 1, true) ~= nil") == true
+      end, 20), 'quit must refuse unsaved startup edits')
+      assert(vim.fn.jobwait({ child }, 0)[1] == -1, 'dirty editor must remain running')
+      assert(lua("return vim.bo[vim.g.quit_test_buf].modified and vim.api.nvim_buf_get_lines(vim.g.quit_test_buf, 0, 1, false)[1] == 'keep unsaved work'") == true, 'quit must preserve dirty text')
+    else
+      assert(vim.fn.jobwait({ child }, 3000)[1] == 0, 'one :q must exit a clean directory session')
+    end
+  end, debug.traceback)
+  if vim.fn.jobwait({ child }, 0)[1] == -1 then vim.fn.jobstop(child) end
+  assert(ok, err)
+end
+LUA
+
+export NVIM_SMOKE_UPRIGHT="$SMOKE_TMP/upright-highlights.lua"
+cat > "$NVIM_SMOKE_UPRIGHT" <<'LUA'
+local api = vim.api
+local function upright()
+  local namespaces = { 0 }
+  for _, id in pairs(api.nvim_get_namespaces()) do namespaces[#namespaces + 1] = id end
+  for _, id in ipairs(namespaces) do
+    for _, hl in pairs(api.nvim_get_hl(id, { link = true })) do
+      if hl.italic or (hl.cterm and hl.cterm.italic) then return false end
+    end
+  end
+  return true
+end
+assert(vim.wait(1000, upright, 10), 'startup highlights must not contain italics')
+local namespace = api.nvim_create_namespace('upright-regression')
+local style = { fg = 0x123456, bg = 0x654321, sp = 0xaabbcc, italic = true, bold = true,
+  underline = true, default = true, ctermfg = 12, ctermbg = 3, cterm = { italic = true, bold = true, underline = true } }
+local expected = vim.deepcopy(style)
+expected.default = nil
+expected.italic = nil
+expected.cterm.italic = nil
+for _, id in ipairs({ 0, namespace }) do
+  api.nvim_set_hl(id, 'UprightTest', style)
+  api.nvim_set_hl(id, 'UprightLink', { link = 'UprightTest' })
+end
+api.nvim_exec_autocmds('User', { pattern = 'LazyLoad' })
+assert(vim.wait(1000, upright, 10), 'lazy plugin highlights must not restore italics')
+for _, id in ipairs({ 0, namespace }) do
+  assert(vim.deep_equal(api.nvim_get_hl(id, { name = 'UprightTest', link = true }), expected), 'non-italic attributes must remain unchanged')
+  assert(api.nvim_get_hl(id, { name = 'UprightLink', link = true }).link == 'UprightTest', 'highlight links must remain links')
+end
+for _, background in ipairs({ 'light', 'dark' }) do
+  vim.o.background = background
+  vim.cmd('colorscheme apollo')
+  assert(vim.wait(1000, upright, 10), 'theme changes must not restore italics')
+end
+for _, event in ipairs({ 'FileType', 'Syntax' }) do
+  api.nvim_set_hl(0, 'UprightLate', { italic = true, cterm = { italic = true } })
+  if event == 'FileType' then vim.bo.filetype = 'lua' else vim.bo.syntax = 'lua' end
+  assert(vim.wait(1000, upright, 10), event .. ' must not restore italics')
+end
+print('UPRIGHT_HIGHLIGHTS_OK')
 LUA
 
 export NVIM_SMOKE_DIAGNOSTIC_CONFIG="$SMOKE_TMP/diagnostic-config.lua"
@@ -941,8 +1059,10 @@ nvim_probe "Bufferline detached clone updates main and writes its lockfile" +"lu
 nvim_probe "Bufferline formatter and indicator keep stable width" +"lua dofile(vim.env.NVIM_SMOKE_BUFFERLINE_CONFIG)"
 nvim_probe "Top system strip preserves layout, focus, and telemetry" +"lua dofile(vim.env.NVIM_SMOKE_REPO .. '/scripts/topbar-regression.lua')"
 nvim_probe "Bufferline header keyboard navigation preserves editor mappings" +"lua dofile(vim.env.NVIM_SMOKE_HEADER)"
-nvim_probe "nvim <directory> settles to one persistent Neo-tree" "$REPO_DIR" +"let g:smoke_case='startup'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
+nvim_probe "nvim <directory> settles to one persistent Neo-tree and focuses the editor" "$REPO_DIR" +"let g:smoke_case='startup'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
+nvim_probe "directory startup quits once when clean and protects unsaved edits" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY_QUIT)"
 nvim_probe "opening first Neo-tree file preserves tree and listed buffers" "$REPO_DIR" +"let g:smoke_case='first_file'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
+nvim_probe "terminal reuses the editor from file, tree, and header without losing edits" "$REPO_DIR" +"let g:smoke_case='terminal'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 nvim_probe "closing last file preserves real Neo-tree and editor windows" "$REPO_DIR" +"let g:smoke_case='close_last'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 nvim_probe "Bufferline arrows cycle real files with stable layout" "$REPO_DIR" +"let g:smoke_case='bufferline'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 assert_not_eager vim-fugitive
@@ -970,6 +1090,7 @@ assert_not_eager gruvbox
 nvim_probe "Apollo is eager (loaded at startup)" +"lua $(loaded_lua nvim-apollo-theme)"
 nvim_probe "Apollo has priority = 1000" +"lua local p=require('lazy.core.config').plugins['nvim-apollo-theme']; if not (p and p.priority == 1000) then vim.cmd('cq') end"
 nvim_probe "Apollo is the active colorscheme" +"lua if vim.g.colors_name ~= 'apollo' then vim.cmd('cq') end"
+nvim_probe "all highlights stay upright after theme, syntax, and plugin loads" +"lua dofile(vim.env.NVIM_SMOKE_UPRIGHT)"
 
 nvim_probe "diagnostics: virtual text on errors, underline from warnings, no signs" +"e README.md" +"lua dofile(vim.env.NVIM_SMOKE_DIAGNOSTIC_CONFIG)"
 nvim_probe "cursor-line warning echoes to the message area and clears" +"e README.md" +"lua dofile(vim.env.NVIM_SMOKE_DIAGNOSTIC_ECHO)"
