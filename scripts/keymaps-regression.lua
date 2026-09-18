@@ -107,7 +107,61 @@ local function assert_terminal_closed(buf, job, pid)
   end, 10), 'closing the terminal must stop its process')
 end
 
+local function open_terminal()
+  callback(',t')()
+end
+
 local tests = {
+  { 'terminal reuses the editor and preserves unsaved files', function()
+    for _, from in ipairs({ 'editor', 'neo-tree', 'bufferline' }) do
+      local file = named(reset())
+      local editor = api.nvim_get_current_win()
+      api.nvim_buf_set_lines(file, 0, -1, false, { 'unsaved file text' })
+      local utility, utility_win
+      if from ~= 'editor' then
+        vim.cmd('vsplit')
+        utility_win = api.nvim_get_current_win()
+        utility = api.nvim_create_buf(false, true)
+        vim.bo[utility].filetype = from
+        api.nvim_win_set_buf(utility_win, utility)
+        vim.wo[utility_win].winfixbuf = true
+      end
+      local windows = api.nvim_tabpage_list_wins(0)
+      local terminal, job
+      local ok, err = xpcall(function()
+        open_terminal()
+        terminal, job = api.nvim_get_current_buf(), vim.b.terminal_job_id
+        eq(api.nvim_get_current_win(), editor, 'terminal must use the existing editor window')
+        eq(api.nvim_tabpage_list_wins(0), windows, 'terminal must not add a split')
+        eq(vim.bo[terminal].buftype, 'terminal', 'editor must display a terminal')
+        assert(job and vim.fn.jobwait({ job }, 0)[1] == -1, 'terminal job must be running')
+        assert(vim.bo[file].modified and vim.bo[file].buflisted, 'file stays listed and modified')
+        eq(api.nvim_buf_get_lines(file, 0, -1, false), { 'unsaved file text' }, 'file contents survive')
+        if utility then eq(api.nvim_win_get_buf(utility_win), utility, 'utility window is untouched') end
+        vim.cmd('buffer #')
+        eq(api.nvim_get_current_buf(), file, 'alternate buffer returns to the file')
+      end, debug.traceback)
+      if job and vim.fn.jobwait({ job }, 0)[1] == -1 then vim.fn.jobstop(job) end
+      if terminal and vim.bo[terminal].buftype == 'terminal' then api.nvim_buf_delete(terminal, { force = true }) end
+      if utility_win then vim.wo[utility_win].winfixbuf = false end
+      assert(ok, err)
+    end
+  end },
+  { 'terminal refuses when no unlocked editor is available', function()
+    local file = named(reset())
+    local windows = api.nvim_list_wins()
+    vim.wo.winfixbuf = true
+    local notify, warning = vim.notify, nil
+    vim.notify = function(message) warning = message end
+    local ok, err = pcall(open_terminal)
+    vim.notify = notify
+    vim.wo.winfixbuf = false
+    assert(ok, err)
+    assert(warning and warning:find('No unlocked editor', 1, true), 'terminal must explain a locked editor')
+    eq(api.nvim_get_current_buf(), file, 'locked editor keeps its file')
+    eq(api.nvim_list_wins(), windows, 'refusal must not add windows')
+    eq(listed(), { file }, 'refusal must not create a terminal buffer')
+  end },
   { 'non-terminal buffers never force deletion', function()
     for _, hidden in ipairs({ false, true }) do
       local buf = named(reset())
@@ -309,7 +363,7 @@ local tests = {
     eq(vim.fn.maparg('w!!', 'c'), '', 'command-line sudo absent')
     eq(vim.fn.maparg(',gs', 'n'), ':Git status<CR>', 'safe Git status mapping')
     eq(vim.fn.maparg(',wr', 'n'), ':set wrap! wrap?<CR>', 'wrap mapping preserved')
-    eq(vim.fn.maparg(',t', 'n'), ':split | terminal<CR>', 'terminal mapping preserved without executing it')
+    callback(',t')
     for _, key in ipairs({ '<C-[>', '<C-]>' }) do
       local mapping = vim.fn.maparg(key, 't', false, true)
       eq(mapping.rhs, '<C-\\><C-n>', key .. ' exits terminal-input mode in one key')

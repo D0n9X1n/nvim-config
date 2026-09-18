@@ -120,7 +120,7 @@ local function integration()
   eq(vim.g.colors_name, 'apollo', 'theme initialized')
   assert(vim.o.shell == 'pwsh' or vim.o.shell == 'powershell', 'Windows shell initialized')
   eq(vim.g.mapleader, ',', 'leader preserved')
-  eq(vim.fn.maparg(',t', 'n'), ':split | terminal<CR>', 'terminal mapping preserved')
+  assert(type(vim.fn.maparg(',t', 'n', false, true).callback) == 'function', 'terminal mapping must select an existing editor')
   assert(vim.fn.filereadable(vim.fn.stdpath('config') .. '/lua/config/private.lua') == 1, 'private stub exists')
   assert(vim.fn.has('python3') == 1, 'Python provider required')
   local plugins = require('lazy.core.config').plugins

@@ -62,6 +62,39 @@ vim.api.nvim_create_autocmd('ColorScheme', {
   callback = apply_diagnostic_highlights,
 })
 
+local function disable_italics()
+  local namespaces = { 0 }
+  for _, id in pairs(vim.api.nvim_get_namespaces()) do namespaces[#namespaces + 1] = id end
+  for _, id in ipairs(namespaces) do
+    for name, hl in pairs(vim.api.nvim_get_hl(id, { link = true })) do
+      if hl.italic or (hl.cterm and hl.cterm.italic) then
+        -- A default highlight write would leave the existing italic definition untouched.
+        hl.default = nil
+        hl.italic = false
+        if hl.cterm then hl.cterm.italic = false end
+        vim.api.nvim_set_hl(id, name, hl)
+      end
+    end
+  end
+end
+
+local italic_refresh_pending = false
+local function refresh_italics()
+  if italic_refresh_pending then return end
+  italic_refresh_pending = true
+  vim.schedule(function()
+    italic_refresh_pending = false
+    disable_italics()
+  end)
+end
+
+local upright_group = vim.api.nvim_create_augroup('UprightHighlights', { clear = true })
+vim.api.nvim_create_autocmd({ 'ColorScheme', 'VimEnter', 'FileType', 'Syntax' }, {
+  group = upright_group,
+  callback = refresh_italics,
+})
+vim.api.nvim_create_autocmd('User', { group = upright_group, pattern = 'LazyLoad', callback = refresh_italics })
+disable_italics()
 
 -- Softer spell-check highlights
 vim.cmd([[
