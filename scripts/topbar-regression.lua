@@ -54,48 +54,63 @@ api.nvim_buf_delete(utility, { force = true })
 
 vim.o.lines = 40
 vim.o.columns = 120
-topbar.refresh()
-local function bar()
-  for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
-    if vim.bo[api.nvim_win_get_buf(win)].filetype == 'systembar' then return win end
-  end
-end
-assert(vim.wait(1000, function() topbar.refresh(); return bar() ~= nil end, 10), 'top strip must appear')
-local win = bar()
-assert(api.nvim_win_get_position(win)[1] == 0 and api.nvim_win_get_width(win) == vim.o.columns, 'strip must sit across the top')
-assert(api.nvim_win_get_height(win) == 1, 'strip is one row')
-local visited = {}
-_G.topbar_test_visit = function() visited[api.nvim_get_current_win()] = true end
-vim.cmd('windo lua _G.topbar_test_visit()')
-_G.topbar_test_visit = nil
-for _, window in ipairs(api.nvim_tabpage_list_wins(0)) do
-  assert(visited[window], 'windo must still visit each window')
-end
-local editing = api.nvim_get_current_win()
-for _, command in ipairs({ 'wincmd t', 'wincmd k', 'wincmd w' }) do
-  api.nvim_set_current_win(editing)
-  vim.cmd(command)
-  assert(vim.wait(1000, function() return api.nvim_get_current_win() ~= win end, 10), 'strip must reject focus from ' .. command)
-end
-api.nvim_set_current_win(win)
-assert(vim.wait(1000, function() return api.nvim_get_current_win() ~= win end, 10), 'direct focus must return to an editing window')
-api.nvim_set_current_win(editing)
-assert(not vim.bo[api.nvim_win_get_buf(win)].buflisted, 'strip is not a buffer tab')
 local runtime = require('bufferline.multiline.runtime')
-for _ = 1, 5 do runtime.flush('topbar-test'); topbar.refresh() end
-assert(bar() == win, 'redraws must not recreate the strip')
+local function rendered()
+  return api.nvim_eval_statusline(vim.o.tabline, { use_tabline = true, maxwidth = vim.o.columns }).str
+end
+local function adjacent()
+  assert(vim.wait(1000, function()
+    runtime.flush('topbar-test')
+    local handle = runtime.handles()[api.nvim_get_current_tabpage()]
+    return handle and runtime.owns(handle.win) and api.nvim_win_get_position(handle.win)[1] == 1
+  end, 10), 'buffer tabs must immediately follow the banner without a blank separator row')
+  assert(vim.o.showtabline == 2, 'banner must use exactly one native tabline row')
+  assert(rendered() == text(topbar.format(vim.o.columns)), 'banner must fill the screen width')
+  for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
+    assert(vim.bo[api.nvim_win_get_buf(win)].filetype ~= 'systembar', 'banner must not create a scratch split')
+  end
+  local header = assert(runtime.handles()[api.nvim_get_current_tabpage()])
+  assert(api.nvim_win_get_position(header.win)[1] == 1, 'buffer tabs must immediately follow the banner without a blank separator row')
+end
+adjacent()
+local escaped = api.nvim_eval_statusline(topbar.tabline(80, { host = 'host%#Error#name', unsaved = 0 }), { use_tabline = true, maxwidth = 80 })
+assert(escaped.str == text(topbar.format(80, { host = 'host%#Error#name', unsaved = 0 })), 'hostname percent signs must be literal')
 local editor = api.nvim_get_current_win()
-vim.cmd('vsplit')
-topbar.refresh()
-assert(bar() == win and api.nvim_win_get_width(win) == vim.o.columns, 'splits preserve a single full-width strip')
+for _ = 1, 5 do adjacent() end
+assert(api.nvim_get_current_win() == editor, 'banner redraws must not steal focus')
+local dirty_count = topbar.sample().unsaved
+api.nvim_buf_set_lines(0, 0, -1, false, { 'unsaved preview' })
+api.nvim_exec_autocmds('BufModifiedSet', { buffer = api.nvim_get_current_buf() })
+assert(vim.wait(1000, function() return rendered():find(' ' .. (dirty_count + 1), 1, true) ~= nil end, 10), 'unsaved count must update after edits')
+vim.bo.modified = false
+api.nvim_exec_autocmds('BufModifiedSet', { buffer = api.nvim_get_current_buf() })
+assert(vim.wait(1000, function() return rendered():find(' ' .. dirty_count, 1, true) ~= nil end, 10), 'saved count must update')
+for _, command in ipairs({ 'vsplit', 'split', 'tab split' }) do
+  vim.cmd(command)
+  adjacent()
+  vim.cmd(command == 'tab split' and 'tabclose' or 'close')
+  adjacent()
+end
+vim.cmd('Neotree show')
+assert(vim.wait(1000, function()
+  for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
+    if vim.bo[api.nvim_win_get_buf(win)].filetype == 'neo-tree' then return api.nvim_win_get_position(win)[1] == 1 end
+  end
+end, 10), 'Neo-tree must start directly below the full-width banner')
+api.nvim_set_current_win(editor)
+adjacent()
+vim.cmd('Neotree close')
 vim.cmd('only')
-assert(vim.wait(1000, function() topbar.refresh(); return bar() ~= nil end, 10), 'strip recovers after only')
+adjacent()
+for _, width in ipairs({ 30, 80, 160, 120 }) do
+  vim.o.columns = width
+  adjacent()
+end
 vim.o.lines = 8
-topbar.refresh()
-assert(not bar(), 'tiny terminals must prioritize editing space')
+runtime.flush('topbar-small')
+assert(vim.o.showtabline == 0, 'tiny terminals must prioritize editing space')
 vim.o.lines = 40
-topbar.refresh()
-assert(bar(), 'strip returns with enough space')
+adjacent()
 vim.cmd('colorscheme apollo')
 topbar.refresh()
 assert(vim.wait(1000, function()
@@ -108,9 +123,12 @@ assert(vim.wait(1000, function()
     and warning.bg == 0xfe8019 and warning.fg == 0x141617 and warning.bold
 end, 10), 'hostname must be red and the unsaved counter blue')
 api.nvim_exec_autocmds('SessionLoadPre', {})
-assert(not bar(), 'session loading closes the scratch strip')
+assert(vim.o.showtabline == 0, 'session loading hides the banner')
 api.nvim_exec_autocmds('SessionLoadPost', {})
+adjacent()
+assert(vim.o.laststatus == 3, 'bottom statusline stays unchanged')
+runtime.disable()
+assert(vim.o.tabline == '%!v:lua.nvim_bufferline()', 'disabling multiline must restore native buffer tabs')
 topbar.refresh()
-assert(bar(), 'strip returns after session load')
-assert(vim.o.showtabline == 0 and vim.o.laststatus == 3, 'native tabs and bottom statusline stay unchanged')
+assert(vim.o.tabline == '%!v:lua.nvim_bufferline()', 'banner must not reclaim the native renderer')
 print('TOPBAR_REGRESSION_OK')

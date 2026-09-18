@@ -32,7 +32,8 @@ local function apply_diagnostic_highlights()
   vim.api.nvim_set_hl(0, 'DiagnosticUnderlineError', {
     fg = error_color,
     sp = error_color,
-    undercurl = true,
+    italic = false,
+    nocombine = true,
     ctermfg = 196,
     underline = true,
   })
@@ -43,10 +44,15 @@ local function apply_diagnostic_highlights()
   vim.api.nvim_set_hl(0, 'DiagnosticUnderlineWarn', {
     fg = warning_color,
     sp = warning_color,
-    undercurl = true,
+    italic = false,
+    nocombine = true,
     ctermfg = 208,
     underline = true,
   })
+  local unnecessary = vim.api.nvim_get_hl(0, { name = 'DiagnosticUnnecessary', link = false })
+  unnecessary.italic = false
+  if unnecessary.cterm then unnecessary.cterm.italic = false end
+  vim.api.nvim_set_hl(0, 'DiagnosticUnnecessary', unnecessary)
 end
 
 apply_diagnostic_highlights()
