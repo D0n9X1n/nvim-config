@@ -576,22 +576,48 @@ local function run()
       local header = runtime.handles()[api.nvim_get_current_tabpage()].win
       local windows = api.nvim_tabpage_list_wins(0)
       api.nvim_set_current_win(source == 'tree' and tree_win or source == 'header' and header or editor)
-      local terminal, job
+      local terminal, terminal_win, job
       local ok, err = xpcall(function()
         api.nvim_feedkeys(',t', 'xt', false)
-        terminal, job = api.nvim_get_current_buf(), vim.b.terminal_job_id
-        assert(api.nvim_get_current_win() == editor and vim.bo.buftype == 'terminal', 'terminal must reuse the main editor from ' .. source)
+        terminal, terminal_win, job = api.nvim_get_current_buf(), api.nvim_get_current_win(), vim.b.terminal_job_id
+        assert(terminal_win ~= editor and vim.bo.buftype == 'terminal', 'terminal must split the main editor from ' .. source)
+        assert(api.nvim_win_get_buf(editor) == file, 'file must remain visible in its original window')
         assert(job and vim.fn.jobwait({ job }, 0)[1] == -1, 'terminal shell must be running')
+        local pid = vim.fn.jobpid(job)
         runtime.flush('terminal-test')
-        assert(vim.deep_equal(api.nvim_tabpage_list_wins(0), windows), 'terminal must not add or remove splits')
+        local remaining = vim.tbl_filter(function(win) return win ~= terminal_win end, api.nvim_tabpage_list_wins(0))
+        assert(vim.deep_equal(remaining, windows), 'terminal must add exactly one split and preserve existing windows')
+        local editor_pos, terminal_pos = api.nvim_win_get_position(editor), api.nvim_win_get_position(terminal_win)
+        assert(terminal_pos[1] > editor_pos[1] and terminal_pos[2] == editor_pos[2], 'terminal must split below the editor, not the tree or header')
+        assert(api.nvim_win_get_width(terminal_win) == api.nvim_win_get_width(editor), 'terminal must stay within the editor width')
         assert_tree_persisted()
         assert(runtime.owns(header) and api.nvim_win_get_position(header)[1] == 1, 'terminal must stay below banner and header')
-        vim.cmd('buffer #')
-        assert(api.nvim_get_current_buf() == file and vim.bo.modified, 'previous file must keep unsaved edits')
-        assert(api.nvim_get_current_line() == 'keep unsaved file text', 'file text must be preserved')
+        local handle = runtime.handles()[api.nvim_get_current_tabpage()]
+        local entry
+        for _, component in ipairs(handle.frame.visible_components) do
+          if component.id == terminal then entry = component end
+        end
+        assert(entry and entry.name == 'Terminal' and vim.bo[terminal].buflisted, 'terminal must have a listed Terminal entry')
+        assert(table.concat(api.nvim_buf_get_lines(handle.buf, 0, -1, false)):find('Terminal', 1, true), 'Terminal label must be rendered in the header')
+        api.nvim_set_current_win(header)
+        for _ = 1, #handle.frame.positions do
+          if handle.candidate == terminal then break end
+          api.nvim_feedkeys('l', 'xt', false)
+        end
+        assert(handle.candidate == terminal, 'header navigation must select the Terminal entry')
+        api.nvim_feedkeys('x', 'xt', false)
+        assert(vim.wait(1000, function() return vim.fn.buflisted(terminal) == 0 end, 10), 'header x must remove the Terminal buffer')
+        assert(vim.wait(3000, function()
+          return vim.fn.jobwait({ job }, 0)[1] ~= -1 and not vim.uv.kill(pid, 0)
+        end, 10), 'header x must stop the terminal shell')
+        assert(api.nvim_win_get_buf(editor) == file and vim.bo[file].modified, 'closing terminal must preserve unsaved file')
+        assert(api.nvim_buf_get_lines(file, 0, 1, false)[1] == 'keep unsaved file text', 'file text must be preserved')
+        assert_tree_persisted()
       end, debug.traceback)
       if job and vim.fn.jobwait({ job }, 0)[1] == -1 then vim.fn.jobstop(job) end
-      if terminal and vim.bo[terminal].buftype == 'terminal' then api.nvim_buf_delete(terminal, { force = true }) end
+      if terminal and api.nvim_buf_is_valid(terminal) and vim.bo[terminal].buftype == 'terminal' then api.nvim_buf_delete(terminal, { force = true }) end
+      if terminal_win and terminal_win ~= editor and api.nvim_win_is_valid(terminal_win) then api.nvim_win_close(terminal_win, false) end
+      api.nvim_set_current_win(editor)
       assert(ok, err)
     end
     return
@@ -1062,7 +1088,7 @@ nvim_probe "Bufferline header keyboard navigation preserves editor mappings" +"l
 nvim_probe "nvim <directory> settles to one persistent Neo-tree and focuses the editor" "$REPO_DIR" +"let g:smoke_case='startup'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 nvim_probe "directory startup quits once when clean and protects unsaved edits" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY_QUIT)"
 nvim_probe "opening first Neo-tree file preserves tree and listed buffers" "$REPO_DIR" +"let g:smoke_case='first_file'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
-nvim_probe "terminal reuses the editor from file, tree, and header without losing edits" "$REPO_DIR" +"let g:smoke_case='terminal'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
+nvim_probe "terminal splits below editor, appears in Bufferline, and closes with header x" "$REPO_DIR" +"let g:smoke_case='terminal'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 nvim_probe "closing last file preserves real Neo-tree and editor windows" "$REPO_DIR" +"let g:smoke_case='close_last'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 nvim_probe "Bufferline arrows cycle real files with stable layout" "$REPO_DIR" +"let g:smoke_case='bufferline'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 assert_not_eager vim-fugitive

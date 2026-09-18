@@ -170,7 +170,7 @@ Ag results use an unlisted quickfix utility window, not an editor tab. The buffe
 | `<C-h/j/k/l>` | Navigate splits |
 | `<C-t>` | New tab |
 | `,tt` | Return to the previous tab |
-| `,t` | Open a terminal in the current editor window; keep the file as a buffer |
+| `,t` | Open a new Terminal buffer in a split below the current editor; keep the file visible |
 | `<C-[>` / `<C-]>` | Leave terminal-input mode with either key; keep the job running |
 
 Bufferline follows the latest `main` branch of `MOSconfig/bufferline.nvim` (updated with `:Lazy update`), with up to three wrapped rows above the editor area only. Neo-tree stays full-height on the left and remains available with `,n`; no repeated Explorer placeholder is needed. Starting with one directory argument (`nvim .`) leaves Neo-tree visible but focuses the editor, so a clean startup exits with one `:q`. Later explicit tree navigation keeps its focus.
@@ -190,7 +190,7 @@ Adjust `tab_size` (currently `16`) in `lua/config/plugins/bufferline.lua` to cha
 
 Multi-row uses an extra header split. `multiline.enabled` is the only renderer switch: closing splits, `:only`, or temporarily insufficient space never enables native tabs. The header is rebuilt when the layout permits. Before saving a session, explicitly disable multiline to avoid serializing its scratch window. To select native rendering, set `multiline.enabled = false` in `lua/config/plugins/bufferline.lua` and restart.
 
-`,t` reuses the current unlocked editor window without adding a split; from Neo-tree, the header, or another utility window it returns to an available editor. The previous file stays listed with unsaved edits intact; use `<C-]>` then `:buffer #` to return to it. If no unlocked editor exists, the mapping warns without changing the layout. `,t` waits for the mapping timeout because `,tt` shares its prefix. In terminal-input mode, either `Ctrl+[` or `Ctrl+]` returns to Normal mode without stopping the shell/job. Terminals that encode `Ctrl+[` as Escape also make Escape leave terminal-input mode. `*` searches backward and `#` searches forward; both center the result.
+`,t` creates a new terminal buffer in a horizontal split below the current unlocked editor; from Neo-tree, the header, or another utility window it selects an editor before splitting. The original file stays visible with unsaved edits intact, while Neo-tree and the top header stay in place. The new buffer appears as `Terminal` in Bufferline; select that entry in the header and press `x` to remove the buffer and stop its shell. The existing buffer-close action preserves the split and displays a surviving buffer there. If no unlocked editor exists, the mapping warns without changing the layout. `,t` waits for the mapping timeout because `,tt` shares its prefix. In terminal-input mode, either `Ctrl+[` or `Ctrl+]` returns to Normal mode without stopping the shell/job. Terminals that encode `Ctrl+[` as Escape also make Escape leave terminal-input mode. `*` searches backward and `#` searches forward; both center the result.
 
 Italic styling is disabled across editor and plugin highlights, including comments, folded text, LSP hints, Markdown emphasis, and buffer tabs. Theme, filetype/syntax, and lazy-plugin load events reapply upright styling while preserving colors, bold, underlines, and highlight links. Error and warning ranges use straight colored underlines and upright text; unnecessary-code diagnostic tags do not add italics. These overrides persist across colorscheme changes without changing diagnostic severity filtering.
 

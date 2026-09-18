@@ -112,7 +112,7 @@ local function open_terminal()
 end
 
 local tests = {
-  { 'terminal reuses the editor and preserves unsaved files', function()
+  { 'terminal splits below the editor and preserves visible unsaved files', function()
     for _, from in ipairs({ 'editor', 'neo-tree', 'bufferline' }) do
       local file = named(reset())
       local editor = api.nvim_get_current_win()
@@ -131,15 +131,23 @@ local tests = {
       local ok, err = xpcall(function()
         open_terminal()
         terminal, job = api.nvim_get_current_buf(), vim.b.terminal_job_id
-        eq(api.nvim_get_current_win(), editor, 'terminal must use the existing editor window')
-        eq(api.nvim_tabpage_list_wins(0), windows, 'terminal must not add a split')
-        eq(vim.bo[terminal].buftype, 'terminal', 'editor must display a terminal')
+        local terminal_win = api.nvim_get_current_win()
+        assert(terminal_win ~= editor, 'terminal must open in a new split, not take over the file window')
+        eq(api.nvim_win_get_buf(editor), file, 'original file must remain visible in its window')
+        local remaining = vim.tbl_filter(function(win) return win ~= terminal_win end, api.nvim_tabpage_list_wins(0))
+        eq(remaining, windows, 'terminal must add exactly one split and preserve existing windows')
+        local editor_pos = api.nvim_win_get_position(editor)
+        local terminal_pos = api.nvim_win_get_position(terminal_win)
+        assert(terminal_pos[1] > editor_pos[1], 'terminal must split below the editor')
+        eq(terminal_pos[2], editor_pos[2], 'terminal must stay inside the editor area')
+        eq(api.nvim_win_get_width(terminal_win), api.nvim_win_get_width(editor), 'terminal split must match editor width')
+        eq(vim.bo[terminal].buftype, 'terminal', 'new split must display a terminal')
         assert(job and vim.fn.jobwait({ job }, 0)[1] == -1, 'terminal job must be running')
         assert(vim.bo[file].modified and vim.bo[file].buflisted, 'file stays listed and modified')
         eq(api.nvim_buf_get_lines(file, 0, -1, false), { 'unsaved file text' }, 'file contents survive')
         if utility then eq(api.nvim_win_get_buf(utility_win), utility, 'utility window is untouched') end
-        vim.cmd('buffer #')
-        eq(api.nvim_get_current_buf(), file, 'alternate buffer returns to the file')
+        api.nvim_set_current_win(editor)
+        eq(api.nvim_get_current_buf(), file, 'returning to editor must show the original file')
       end, debug.traceback)
       if job and vim.fn.jobwait({ job }, 0)[1] == -1 then vim.fn.jobstop(job) end
       if terminal and vim.bo[terminal].buftype == 'terminal' then api.nvim_buf_delete(terminal, { force = true }) end
