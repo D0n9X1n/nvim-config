@@ -1,8 +1,7 @@
 local api = vim.api
 local M = {}
-local namespace = api.nvim_create_namespace('SystemBar')
-local windows = {}
 local started, pending, busy, paused = false, false, false, false
+local native_tabline, rendered_tabline
 
 function M.sample()
   local count = 0
@@ -39,16 +38,6 @@ function M.format(width, snapshot)
   return chunks
 end
 
-local function owns(win)
-  return win and api.nvim_win_is_valid(win) and vim.b[api.nvim_win_get_buf(win)].systembar == namespace
-end
-
-local function close(tab)
-  local win = windows[tab]
-  windows[tab] = nil
-  if owns(win) then pcall(api.nvim_win_close, win, true) end
-end
-
 local function highlights()
   local normal = api.nvim_get_hl(0, { name = 'Normal', link = false })
   local selected = api.nvim_get_hl(0, { name = 'BufferLineBufferSelected', link = false })
@@ -67,7 +56,6 @@ end
 local function minimum_height(layout)
   if layout[1] == 'leaf' then
     local win = layout[2]
-    if owns(win) then return 0 end
     if vim.bo[api.nvim_win_get_buf(win)].filetype == 'bufferline' then return 3 end
     return math.max(1, vim.o.winminheight) + (vim.wo[win].winbar ~= '' and 1 or 0)
   end
@@ -82,59 +70,36 @@ local function minimum_height(layout)
   return height + (layout[1] == 'col' and math.max(0, count - 1) or 0)
 end
 
-local function render()
-  for tab, win in pairs(windows) do
-    if not api.nvim_tabpage_is_valid(tab) or not owns(win) then windows[tab] = nil end
+function M.tabline(width, snapshot)
+  local parts = {}
+  for _, chunk in ipairs(M.format(width or vim.o.columns, snapshot)) do
+    parts[#parts + 1] = '%#' .. chunk[2] .. '#' .. chunk[1]:gsub('%%', '%%%%')
   end
-  local tab = api.nvim_get_current_tabpage()
-  local layout = vim.fn.winlayout()
+  return table.concat(parts)
+end
+
+local function render()
+  local runtime = require('bufferline.multiline.runtime')
+  if not runtime.selected() then
+    if rendered_tabline and vim.o.tabline == rendered_tabline then vim.o.tabline = native_tabline end
+    rendered_tabline = nil
+    return
+  end
   local editors = 0
-  for _, win in ipairs(api.nvim_tabpage_list_wins(tab)) do
+  for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
     local kind = vim.bo[api.nvim_win_get_buf(win)].buftype
     if api.nvim_win_get_config(win).relative == '' and (kind == '' or kind == 'terminal') then editors = editors + 1 end
   end
   local available = vim.o.lines - vim.o.cmdheight - (vim.o.laststatus > 0 and 1 or 0)
-  if editors == 0 or vim.o.lines < 12 or available < minimum_height(layout) + 2 then close(tab); return end
-  local win = windows[tab]
-  if not owns(win) then
-    local buf = api.nvim_create_buf(false, true)
-    vim.b[buf].systembar = namespace
-    vim.bo[buf].filetype = 'systembar'
-    vim.bo[buf].bufhidden = 'wipe'
-    local ok
-    ok, win = pcall(api.nvim_open_win, buf, false, { split = 'above', win = -1, height = 1, focusable = false, noautocmd = true })
-    if not ok then api.nvim_buf_delete(buf, { force = true }); return end
-    windows[tab] = win
-    for name, value in pairs({
-      winfixheight = true, winfixbuf = true, wrap = false, number = false, relativenumber = false,
-      signcolumn = 'no', foldcolumn = '0', foldenable = false, winbar = '', statuscolumn = '',
-      cursorline = false, cursorcolumn = false, spell = false, list = false, colorcolumn = '',
-      winhighlight = 'Normal:SystemBar,EndOfBuffer:SystemBar', fillchars = 'horiz: ,horizup: ,horizdown: ',
-    }) do vim.wo[win][name] = value end
-  elseif layout[1] ~= 'col' or layout[2][1][1] ~= 'leaf' or layout[2][1][2] ~= win then
-    api.nvim_win_set_config(win, { split = 'above', win = -1 })
-  end
-  if api.nvim_win_get_height(win) ~= 1 then api.nvim_win_set_height(win, 1) end
-  local chunks = M.format(api.nvim_win_get_width(win))
-  local parts = {}
-  for _, chunk in ipairs(chunks) do parts[#parts + 1] = chunk[1] end
-  local buf = api.nvim_win_get_buf(win)
-  local line = table.concat(parts)
-  if api.nvim_buf_get_lines(buf, 0, 1, false)[1] ~= line then
-    vim.bo[buf].modifiable = true
-    api.nvim_buf_set_lines(buf, 0, -1, false, { line })
-  end
-  vim.bo[buf].modifiable = false
-  api.nvim_buf_clear_namespace(buf, namespace, 0, -1)
-  local column = 0
-  for _, chunk in ipairs(chunks) do
-    if #chunk[1] > 0 then api.nvim_buf_set_extmark(buf, namespace, 0, column, { end_col = column + #chunk[1], hl_group = chunk[2] }) end
-    column = column + #chunk[1]
-  end
+  local visible = not paused and editors > 0 and vim.o.lines >= 12 and available >= minimum_height(vim.fn.winlayout()) + 1
+  rendered_tabline = M.tabline()
+  if vim.o.tabline ~= rendered_tabline then vim.o.tabline = rendered_tabline end
+  local show = visible and 2 or 0
+  if vim.o.showtabline ~= show then vim.o.showtabline = show end
 end
 
 function M.refresh()
-  if paused or busy then return end
+  if busy then return end
   busy = true
   local ok, err = pcall(render)
   busy = false
@@ -150,45 +115,24 @@ end
 function M.setup()
   if started then return end
   started = true
+  native_tabline = vim.o.tabline
   highlights()
+  local runtime = require('bufferline.multiline.runtime')
+  local flush, disable = runtime.flush, runtime.disable
+  -- Multiline hides the native tabline on every flush; reclaim it for the banner.
+  runtime.flush = function(...)
+    flush(...)
+    M.refresh()
+  end
+  runtime.disable = function(...)
+    disable(...)
+    M.refresh()
+  end
   local group = api.nvim_create_augroup('SystemBar', { clear = true })
-  api.nvim_create_autocmd({ 'WinEnter', 'BufEnter' }, {
-    group = group,
-    callback = function()
-      local entered = api.nvim_get_current_win()
-      if owns(entered) then
-        local target = vim.fn.win_getid(vim.fn.winnr('#'))
-        -- Let :windo finish before changing its current window.
-        vim.schedule(function()
-          if paused or api.nvim_get_current_win() ~= entered or not owns(entered) then return end
-          if not api.nvim_win_is_valid(target) or owns(target) or api.nvim_win_get_tabpage(target) ~= api.nvim_get_current_tabpage() then
-            target = nil
-            for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
-              local kind = vim.bo[api.nvim_win_get_buf(win)].buftype
-              if api.nvim_win_get_config(win).relative == '' and (kind == '' or kind == 'terminal') then target = win; break end
-            end
-          end
-          if target then api.nvim_set_current_win(target) end
-        end)
-      end
-      request()
-    end,
-  })
-  api.nvim_create_autocmd({ 'VimEnter', 'WinClosed', 'TabEnter', 'TabClosed', 'VimResized', 'BufModifiedSet', 'BufAdd', 'BufDelete', 'BufWipeout', 'BufUnload', 'BufWritePost' }, { group = group, callback = request })
+  api.nvim_create_autocmd({ 'VimEnter', 'WinEnter', 'BufEnter', 'WinClosed', 'TabEnter', 'TabClosed', 'VimResized', 'BufModifiedSet', 'BufAdd', 'BufDelete', 'BufWipeout', 'BufUnload', 'BufWritePost' }, { group = group, callback = request })
+  api.nvim_create_autocmd('OptionSet', { group = group, pattern = 'showtabline', callback = request })
   api.nvim_create_autocmd('ColorScheme', { group = group, callback = function() vim.schedule(function() highlights(); M.refresh() end) end })
-  api.nvim_create_autocmd('QuitPre', {
-    group = group,
-    callback = function()
-      local tab = api.nvim_get_current_tabpage()
-      local count = 0
-      for _, win in ipairs(api.nvim_tabpage_list_wins(tab)) do
-        local kind = vim.bo[api.nvim_win_get_buf(win)].buftype
-        if api.nvim_win_get_config(win).relative == '' and (kind == '' or kind == 'terminal') then count = count + 1 end
-      end
-      if count <= 1 then busy = true; close(tab); busy = false; request() end
-    end,
-  })
-  api.nvim_create_autocmd('SessionLoadPre', { group = group, callback = function() paused = true; for tab in pairs(windows) do close(tab) end end })
+  api.nvim_create_autocmd('SessionLoadPre', { group = group, callback = function() paused = true; M.refresh() end })
   api.nvim_create_autocmd('SessionLoadPost', { group = group, callback = function() paused = false; request() end })
   api.nvim_create_autocmd('VimLeavePre', { group = group, callback = function() paused = true end })
   request()

@@ -233,7 +233,7 @@ local ok, err = xpcall(function()
     vim.cmd('cclose')
     runtime.flush('test')
     assert(api.nvim_win_is_valid(editor) and api.nvim_win_get_buf(editor) == original)
-    assert(runtime.owns(header) and vim.o.showtabline == 0)
+    assert(runtime.owns(header) and vim.o.showtabline == 2 and vim.o.tabline:find('SystemBarHost', 1, true))
   ]=])
 end, debug.traceback)
 if child > 0 then vim.fn.jobstop(child) end
@@ -317,7 +317,7 @@ for _, split in ipairs({ 'split', 'vsplit' }) do
     api.nvim_set_current_win(closing)
     keys(':q<CR>')
     assert(not api.nvim_win_is_valid(closing) and api.nvim_win_is_valid(surviving), 'Quit must close only the requested split')
-    assert(require('bufferline.config').options.multiline.enabled and vim.o.showtabline == 0, 'Split quit must never enable native tabs')
+    assert(require('bufferline.config').options.multiline.enabled and vim.o.tabline:find('SystemBarHost', 1, true), 'Split quit must retain multiline tabs and the native banner')
     handle = assert(runtime.handles()[api.nvim_get_current_tabpage()])
     assert(runtime.owns(handle.win), 'Split quit must retain or rebuild an owned header')
     editor = surviving
@@ -675,6 +675,23 @@ local function run()
     assert(vim.tbl_isempty(vim.fn.sign_getdefined(name)),
       'obsolete diagnostic sign must not be defined: ' .. name)
   end
+
+  local function check_highlights()
+    for _, level in ipairs({ 'Error', 'Warn' }) do
+      local hl = vim.api.nvim_get_hl(0, { name = 'DiagnosticUnderline' .. level, link = false })
+      assert(hl.underline and not hl.undercurl and not hl.underdouble and not hl.underdotted and not hl.underdashed,
+        level .. ' must use only a straight underline')
+      assert(not hl.italic and hl.nocombine, level .. ' must not inherit italic syntax styling')
+      for _, prefix in ipairs({ 'Diagnostic', 'DiagnosticVirtualText', 'DiagnosticSign', 'DiagnosticFloating' }) do
+        assert(not vim.api.nvim_get_hl(0, { name = prefix .. level, link = false }).italic, prefix .. level .. ' must be upright')
+      end
+    end
+    assert(not vim.api.nvim_get_hl(0, { name = 'DiagnosticUnnecessary', link = false }).italic,
+      'unnecessary diagnostic tags must not reintroduce italics')
+  end
+  check_highlights()
+  vim.cmd('colorscheme apollo')
+  check_highlights()
 
   local prefix = config.virtual_text.prefix
   assert(type(prefix) == 'function', 'virtual_text prefix must stay a function')

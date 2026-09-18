@@ -7,7 +7,7 @@ require('lualine').setup({
     icons_enabled = true,
     theme = 'auto',
     globalstatus = true,
-    ignore_focus = { 'neo-tree', 'bufferline', 'systembar', 'qf' },
+    ignore_focus = { 'neo-tree', 'bufferline', 'qf' },
     component_separators = { left = '', right = '' },
     section_separators = { left = '', right = '' },
     disabled_filetypes = {
