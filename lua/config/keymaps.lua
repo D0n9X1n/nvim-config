@@ -211,7 +211,8 @@ map('n', '<leader>t', function()
     return
   end
   api.nvim_set_current_win(target)
-  vim.cmd('hide terminal')
+  vim.cmd('belowright new')
+  vim.cmd('terminal')
 end, opts)
 map('t', '<C-[>', '<C-\\><C-n>', opts)
 map('t', '<C-]>', '<C-\\><C-n>', opts)

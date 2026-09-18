@@ -19,6 +19,7 @@ require('bufferline').setup({
     mode = 'buffers',
     multiline = { enabled = true, max_rows = 3 },
     name_formatter = function(buf)
+      if buf.bufnr and vim.bo[buf.bufnr].buftype == 'terminal' then return 'Terminal' end
       local basename = vim.fn.fnamemodify(buf.path, ':t')
       return basename ~= '' and basename or buf.name
     end,
