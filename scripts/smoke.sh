@@ -592,6 +592,40 @@ local function run()
         assert(api.nvim_win_get_width(terminal_win) == api.nvim_win_get_width(editor), 'terminal must stay within the editor width')
         assert_tree_persisted()
         assert(runtime.owns(header) and api.nvim_win_get_position(header)[1] == 1, 'terminal must stay below banner and header')
+        local header_height, cmdheight = api.nvim_win_get_height(header), vim.o.cmdheight
+        local function chord(key)
+          api.nvim_feedkeys(vim.keycode('<C-w>' .. key), 'xt', false)
+          vim.wait(30)
+          runtime.flush('WinResized')
+        end
+        local height = api.nvim_win_get_height(terminal_win)
+        chord('K')
+        assert(api.nvim_win_get_height(terminal_win) == height + 1, 'Ctrl-w K must expand bottom terminal up by one row')
+        chord('J')
+        assert(api.nvim_win_get_height(terminal_win) == height, 'Ctrl-w J must restore terminal height')
+        for _, key in ipairs({ '<', '>', '-', '=' }) do
+          chord(key)
+          local current_pos, file_pos = api.nvim_win_get_position(terminal_win), api.nvim_win_get_position(editor)
+          if key == '<' then assert(current_pos[2] < file_pos[2], 'terminal moves left of file')
+          elseif key == '>' then assert(current_pos[2] > file_pos[2], 'terminal moves right of file')
+          elseif key == '-' then assert(current_pos[1] < file_pos[1], 'terminal moves above file')
+          else assert(current_pos[1] > file_pos[1], 'terminal moves below file') end
+          if key == '<' or key == '>' then
+            local width = api.nvim_win_get_width(terminal_win)
+            chord('H')
+            assert(api.nvim_win_get_width(terminal_win) == width + (key == '<' and -1 or 1), 'Ctrl-w H must move divider left one column')
+            chord('L')
+            assert(api.nvim_win_get_width(terminal_win) == width, 'Ctrl-w L must restore divider')
+          end
+          assert(api.nvim_get_current_win() == terminal_win, 'window controls must preserve terminal focus')
+          assert(api.nvim_win_get_buf(terminal_win) == terminal and api.nvim_win_get_buf(editor) == file, 'movement must preserve both buffers')
+          assert(vim.fn.jobwait({ job }, 0)[1] == -1, 'window controls must keep shell running')
+          assert(api.nvim_win_get_height(header) == header_height and api.nvim_win_get_position(header)[1] == 1, 'window controls must preserve header')
+          assert(api.nvim_win_get_position(header)[2] == api.nvim_win_get_width(tree_win) + 1, 'header must start after the sidebar')
+          assert(api.nvim_win_get_width(header) == vim.o.columns - api.nvim_win_get_width(tree_win) - 1, 'header must span every editor and terminal after redraw')
+          assert(vim.o.cmdheight == cmdheight, 'window controls must not resize the command line')
+          assert_tree_persisted()
+        end
         local handle = runtime.handles()[api.nvim_get_current_tabpage()]
         local entry
         for _, component in ipairs(handle.frame.visible_components) do

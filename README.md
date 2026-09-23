@@ -167,11 +167,17 @@ Ag results use an unlisted quickfix utility window, not an editor tab. The buffe
 |-----|--------|
 | `[b` / `]b` | Previous / next buffer |
 | `,q` | Close buffer; force-stop terminal jobs; refuse unsaved files; leave an empty buffer after the last file |
-| `<C-h/j/k/l>` | Navigate splits |
+| `<C-h/j/k/l>` / `<C-w>h/j/k/l` | Navigate splits |
+| `<C-w>H` / `<C-w>L` | Move the vertical divider left/right by one column |
+| `<C-w>J` / `<C-w>K` | Move the horizontal divider down/up by one row |
+| `<C-w><` / `<C-w>>` | Move the current editor window left/right |
+| `<C-w>-` / `<C-w>=` | Move the current editor window up/down |
 | `<C-t>` | New tab |
 | `,tt` | Return to the previous tab |
 | `,t` | Open a new Terminal buffer in a split below the current editor; keep the file visible |
 | `<C-[>` / `<C-]>` | Leave terminal-input mode with either key; keep the job running |
+
+Window controls use **Ctrl+w**, not the comma leader, in Normal mode. Uppercase `H/J/K/L` follow dot-configs' directional divider movement but use one-cell steps: `K` expands a bottom terminal upward, while `J` shrinks it. The right/bottom divider is used when available, otherwise the left/top divider. Symbol keys move the current editor or terminal window beside an editor neighbor (or another editor when no neighbor exists in that direction), keeping its buffer, focus, and unsaved edits; Neo-tree and Bufferline are not movement targets. Floating/header windows and layouts without an eligible divider or editor are left unchanged. These bindings replace the native uppercase move-window commands and `<`, `>`, `-`, `=` resize/equalize commands; lowercase navigation and plain `H`/`L` text navigation stay unchanged. From terminal-input mode, press `Ctrl+]` first. Press `Ctrl+w` for each adjustment; no repeat-mode captures normal typing. Update Bufferline with `:Lazy update bufferline.nvim` when upgrading: terminal movement requires the header-region fix included in the fork's `v4.10.3` release and later `main` commits.
 
 Bufferline follows the latest `main` branch of `MOSconfig/bufferline.nvim` (updated with `:Lazy update`), with up to three wrapped rows above the editor area only. Neo-tree stays full-height on the left and remains available with `,n`; no repeated Explorer placeholder is needed. Starting with one directory argument (`nvim .`) leaves Neo-tree visible but focuses the editor, so a clean startup exits with one `:q`. Later explicit tree navigation keeps its focus.
 
