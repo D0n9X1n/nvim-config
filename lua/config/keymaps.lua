@@ -117,6 +117,63 @@ map('n', '<C-k>', '<C-W>k', opts)
 map('n', '<C-h>', '<C-W>h', opts)
 map('n', '<C-l>', '<C-W>l', opts)
 
+local function resize_divider(vertical, offset)
+  local api = vim.api
+  local current = api.nvim_get_current_win()
+  local function movable(win)
+    return api.nvim_win_get_config(win).relative == ''
+      and (vertical or vim.bo[api.nvim_win_get_buf(win)].filetype ~= 'bufferline')
+  end
+  if not movable(current) or vim.bo.filetype == 'bufferline' then return end
+  local next_win = vim.fn.win_getid(vim.fn.winnr(vertical and 'l' or 'j'))
+  local owner = current
+  if next_win == current then
+    owner = vim.fn.win_getid(vim.fn.winnr(vertical and 'h' or 'k'))
+    if owner == current then return end
+  elseif not movable(next_win) then
+    return
+  end
+  if not movable(owner) then return end
+  if vertical then
+    vim.fn.win_move_separator(owner, offset)
+  else
+    vim.fn.win_move_statusline(owner, offset)
+  end
+end
+
+map('n', '<C-w>H', function() resize_divider(true, -1) end, opts)
+map('n', '<C-w>L', function() resize_divider(true, 1) end, opts)
+map('n', '<C-w>J', function() resize_divider(false, 1) end, opts)
+map('n', '<C-w>K', function() resize_divider(false, -1) end, opts)
+
+local function move_editor(direction, vertical, after)
+  local api = vim.api
+  local current = api.nvim_get_current_win()
+  local function editor(win)
+    local kind = vim.bo[api.nvim_win_get_buf(win)].buftype
+    return win ~= current and api.nvim_win_get_config(win).relative == ''
+      and (kind == '' or kind == 'terminal')
+  end
+  local kind = vim.bo.buftype
+  if api.nvim_win_get_config(current).relative ~= '' or (kind ~= '' and kind ~= 'terminal') then return end
+  local target = vim.fn.win_getid(vim.fn.winnr(direction))
+  if not editor(target) then
+    target = nil
+    for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
+      if editor(win) then target = win; break end
+    end
+  end
+  if target then
+    api.nvim_win_set_config(current, { win = target,
+      split = vertical and (after and 'right' or 'left') or (after and 'below' or 'above') })
+  end
+end
+
+map('n', '<C-w><lt>', function() move_editor('h', true, false) end, opts)
+map('n', '<C-w>>', function() move_editor('l', true, true) end, opts)
+map('n', '<C-w>-', function() move_editor('k', false, false) end, opts)
+map('n', '<C-w>=', function() move_editor('j', false, true) end, opts)
+
 -- Jump to start/end of line
 map('n', 'H', '^', opts)
 map('n', 'L', '$', opts)

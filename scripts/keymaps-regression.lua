@@ -333,6 +333,116 @@ local tests = {
     end
     eq(vim.fn.buflisted(original), 0, 'original unlisted')
   end },
+  { 'Ctrl-w uppercase resizes dividers one cell from either side', function()
+    for _, vertical in ipairs({ false, true }) do
+      for _, second in ipairs({ false, true }) do
+        local file = named(reset())
+        vim.o.lines, vim.o.columns = 40, 120
+        api.nvim_buf_set_lines(file, 0, -1, false, { 'keep resize edits' })
+        local first = api.nvim_get_current_win()
+        vim.cmd(vertical and 'belowright vsplit' or 'belowright split')
+        local other = api.nvim_get_current_win()
+        local current = second and other or first
+        api.nvim_set_current_win(current)
+        local windows, layout, cmdheight = api.nvim_list_wins(), vim.fn.winlayout(), vim.o.cmdheight
+        local size = vertical and api.nvim_win_get_width or api.nvim_win_get_height
+        local before = size(first)
+        local negative, positive = vertical and 'H' or 'K', vertical and 'L' or 'J'
+        callback('<C-w>' .. negative)
+        callback('<C-w>' .. positive)
+        local function press(key) api.nvim_feedkeys(vim.keycode('<C-w>' .. key), 'xt', false) end
+        press(negative)
+        eq(size(first), before - 1, 'negative direction moves divider one cell')
+        press(positive)
+        eq(size(first), before, 'opposite direction restores divider')
+        press(positive)
+        press(positive)
+        eq(size(first), before + 2, 'repeated chords move two cells')
+        eq(api.nvim_get_current_win(), current, 'resizing preserves focus')
+        eq(api.nvim_list_wins(), windows, 'resizing preserves windows')
+        eq(vim.fn.winlayout(), layout, 'resizing does not move windows')
+        eq(vim.o.cmdheight, cmdheight, 'resizing does not change command-line height')
+        eq(api.nvim_buf_get_lines(file, 0, -1, false), { 'keep resize edits' }, 'resizing preserves text')
+        assert(vim.bo[file].modified, 'resizing preserves modified flag')
+        for _ = 1, 130 do press(negative) end
+        assert(size(first) >= 1 and size(other) >= 1, 'resizing respects minimum sizes')
+        eq(vim.o.cmdheight, cmdheight, 'size limits must not resize command line')
+      end
+    end
+  end },
+  { 'resize ignores solitary, floating, and header windows', function()
+    reset()
+    local editor, cmdheight = api.nvim_get_current_win(), vim.o.cmdheight
+    local width, height = api.nvim_win_get_width(editor), api.nvim_win_get_height(editor)
+    for _, key in ipairs({ 'H', 'J', 'K', 'L' }) do callback('<C-w>' .. key)() end
+    eq(api.nvim_win_get_width(editor), width, 'single window width stays unchanged')
+    eq(api.nvim_win_get_height(editor), height, 'single window height stays unchanged')
+    eq(vim.o.cmdheight, cmdheight, 'single window must not resize command line')
+    local float = api.nvim_open_win(api.nvim_create_buf(false, true), true, {
+      relative = 'editor', row = 3, col = 3, width = 20, height = 4,
+    })
+    local config = api.nvim_win_get_config(float)
+    for _, key in ipairs({ 'H', 'J', 'K', 'L' }) do callback('<C-w>' .. key)() end
+    eq(api.nvim_win_get_config(float), config, 'floating window is unchanged')
+    api.nvim_win_close(float, true)
+    api.nvim_set_current_win(editor)
+    vim.cmd('aboveleft 1new')
+    local header = api.nvim_get_current_win()
+    vim.bo.buftype, vim.bo.filetype = 'nofile', 'bufferline'
+    for _, key in ipairs({ 'H', 'J', 'K', 'L' }) do callback('<C-w>' .. key)() end
+    eq(api.nvim_win_get_height(header), 1, 'focused header must stay one row')
+    api.nvim_set_current_win(editor)
+    height = api.nvim_win_get_height(editor)
+    for _, key in ipairs({ 'J', 'K' }) do callback('<C-w>' .. key)() end
+    eq(api.nvim_win_get_height(header), 1, 'editor must not resize adjacent header')
+    eq(api.nvim_win_get_height(editor), height, 'no editor divider is a no-op')
+  end },
+  { 'Ctrl-w symbols move the window and keep its dirty buffer', function()
+    local original = named(reset())
+    local first = api.nvim_get_current_win()
+    vim.cmd('belowright new')
+    local current, file = api.nvim_get_current_win(), named(api.nvim_get_current_buf())
+    api.nvim_buf_set_lines(file, 0, -1, false, { 'keep moved edits' })
+    api.nvim_win_set_cursor(current, { 1, 5 })
+    for _, key in ipairs({ '<', '>', '-', '=' }) do
+      callback('<C-w>' .. key)
+      api.nvim_feedkeys(vim.keycode('<C-w>' .. key), 'xt', false)
+      local left, right = api.nvim_win_get_position(current), api.nvim_win_get_position(first)
+      if key == '<' then assert(left[2] < right[2], 'move left')
+      elseif key == '>' then assert(left[2] > right[2], 'move right')
+      elseif key == '-' then assert(left[1] < right[1], 'move up')
+      else assert(left[1] > right[1], 'move down') end
+      eq(api.nvim_get_current_win(), current, 'movement keeps current window identity and focus')
+      eq(#api.nvim_list_wins(), 2, 'movement does not add windows')
+      eq(api.nvim_win_get_buf(first), original, 'other window retains its buffer')
+      eq(api.nvim_win_get_buf(current), file, 'moved window retains its buffer')
+      eq(api.nvim_win_get_cursor(current), { 1, 5 }, 'movement keeps cursor')
+      eq(api.nvim_buf_get_lines(file, 0, -1, false), { 'keep moved edits' }, 'movement keeps unsaved text')
+      assert(vim.bo[file].modified, 'movement keeps modified flag')
+    end
+  end },
+  { 'window movement ignores utilities and a solitary editor', function()
+    reset()
+    local editor = api.nvim_get_current_win()
+    for _, key in ipairs({ '<', '>', '-', '=' }) do callback('<C-w>' .. key)() end
+    eq(api.nvim_list_wins(), { editor }, 'single editor is unchanged')
+    vim.cmd('topleft vnew')
+    local tree = api.nvim_get_current_win()
+    vim.bo.buftype, vim.bo.filetype = 'nofile', 'neo-tree'
+    local layout = vim.fn.winlayout()
+    for _, key in ipairs({ '<', '>', '-', '=' }) do callback('<C-w>' .. key)() end
+    eq(vim.fn.winlayout(), layout, 'focused tree does not move')
+    api.nvim_set_current_win(editor)
+    for _, key in ipairs({ '<', '>', '-', '=' }) do callback('<C-w>' .. key)() end
+    eq(vim.fn.winlayout(), layout, 'tree is not a movement target')
+    local float = api.nvim_open_win(api.nvim_create_buf(true, false), true, {
+      relative = 'editor', row = 3, col = 3, width = 20, height = 4,
+    })
+    local config = api.nvim_win_get_config(float)
+    for _, key in ipairs({ '<', '>', '-', '=' }) do callback('<C-w>' .. key)() end
+    eq(api.nvim_win_get_config(float), config, 'floating windows do not move')
+    api.nvim_win_close(float, true)
+  end },
   { 'previous tab absent and repeated switching', function()
     reset()
     local previous = callback(',tt')
@@ -378,6 +488,15 @@ local tests = {
       eq(mapping.noremap, 1, key .. ' is nonrecursive')
     end
     callback(',tt')
+    for _, key in ipairs({ 'H', 'J', 'K', 'L', '<', '>', '-', '=' }) do
+      local mapping = vim.fn.maparg('<C-w>' .. key, 'n', false, true)
+      assert(type(mapping.callback) == 'function' and mapping.noremap == 1, 'window controls must be nonrecursive')
+      eq(vim.fn.maparg('<C-w>' .. key, 't'), '', 'terminal input must not consume resize or movement keys')
+    end
+    for _, key in ipairs({ 'H', 'J', 'K', 'L' }) do eq(vim.fn.maparg(',' .. key, 'n'), '', 'resize must not use leader') end
+    for _, key in ipairs({ 'h', 'j', 'k', 'l' }) do eq(vim.fn.maparg('<C-w>' .. key, 'n'), '', 'lowercase window navigation must stay native') end
+    eq(vim.fn.maparg('H', 'n'), '^', 'plain H keeps text navigation')
+    eq(vim.fn.maparg('L', 'n'), '$', 'plain L keeps text navigation')
     eq(vim.fn.maparg('*', 'n'), '#zz', 'backward word search is centered')
     eq(vim.fn.maparg('#', 'n'), '*zz', 'forward word search is centered')
     eq(vim.fn.maparg('*', 'n', false, true).noremap, 1, 'word search is nonrecursive')
