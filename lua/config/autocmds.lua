@@ -82,6 +82,37 @@ autocmd('BufWinEnter', {
   command = 'silent! loadview',
 })
 
+local tagbar_quit_group = augroup('TagbarSafeQuit', { clear = true })
+autocmd('FileType', {
+  group = tagbar_quit_group,
+  pattern = 'tagbar',
+  callback = function()
+    -- Tagbar rebuilds its QuitPre hooks before setting this filetype on each open.
+    vim.api.nvim_clear_autocmds({ group = tagbar_quit_group, event = 'QuitPre' })
+    autocmd('QuitPre', {
+      group = tagbar_quit_group,
+      callback = function()
+        local api = vim.api
+        local function file_window(win)
+          local buf = api.nvim_win_get_buf(win)
+          return vim.bo[buf].buflisted and vim.bo[buf].buftype == ''
+            and not vim.wo[win].previewwindow and api.nvim_win_get_config(win).relative == ''
+        end
+        if not file_window(api.nvim_get_current_win()) then return end
+        local files, tagbar = 0, false
+        for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
+          if file_window(win) then files = files + 1 end
+          local buf = api.nvim_win_get_buf(win)
+          if vim.bo[buf].filetype == 'tagbar' and vim.bo[buf].buftype == 'nofile'
+            and vim.fn.bufname(buf) == vim.t.tagbar_buf_name then tagbar = true end
+        end
+        -- Close the utility before WinEnter runs under Neovim's window-close layout lock.
+        if files == 1 and tagbar then vim.cmd('TagbarClose') end
+      end,
+    })
+  end,
+})
+
 -- FileType specific settings
 local filetype_group = augroup('FileTypeSettings', { clear = true })
 

@@ -1106,6 +1106,7 @@ for p in tagbar vim-trailing-whitespace vim-easygrep ag.vim; do
   assert_not_eager "$p"
 done
 assert_loads_on_cmd tagbar TagbarOpen
+nvim_probe "Tagbar quit preserves files and tabs without layout-lock errors" +"lua dofile(vim.env.NVIM_SMOKE_REPO .. '/scripts/tagbar-regression.lua')"
 assert_loads_on_cmd vim-trailing-whitespace FixWhitespace
 assert_loads_on_cmd vim-easygrep            "GrepRoot ."
 assert_loads_on_cmd ag.vim                  "AgFromSearch"
