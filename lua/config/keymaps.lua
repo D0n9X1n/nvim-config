@@ -134,6 +134,7 @@ local function resize_divider(vertical, offset)
     return
   end
   if not movable(owner) then return end
+  offset = offset * vim.v.count1
   if vertical then
     vim.fn.win_move_separator(owner, offset)
   else

@@ -370,6 +370,51 @@ local tests = {
       end
     end
   end },
+  { 'Ctrl-w divider resizing honors counts without changing other window state', function()
+    for _, vertical in ipairs({ false, true }) do
+      for _, second in ipairs({ false, true }) do
+        local file = named(reset())
+        vim.o.lines, vim.o.columns = 40, 120
+        api.nvim_feedkeys(vim.keycode('<Esc>'), 'xt', false)
+        api.nvim_buf_set_lines(file, 0, -1, false, { 'keep counted resize edits' })
+        local first = api.nvim_get_current_win()
+        vim.cmd(vertical and 'belowright vsplit' or 'belowright split')
+        local other = api.nvim_get_current_win()
+        local current = second and other or first
+        api.nvim_set_current_win(current)
+        local windows, layout, cmdheight = api.nvim_list_wins(), vim.fn.winlayout(), vim.o.cmdheight
+        local size = vertical and api.nvim_win_get_width or api.nvim_win_get_height
+        local before = size(first)
+        local negative, positive = vertical and 'H' or 'K', vertical and 'L' or 'J'
+        local function press(keys) api.nvim_feedkeys(vim.keycode(keys), 'xt', false) end
+        for _, count in ipairs({ 2, vertical and 20 or 6 }) do
+          local prefix = count .. '<C-w>'
+          press(prefix .. negative)
+          eq(size(first), before - count, 'counted negative direction moves divider by count')
+          press(prefix .. positive)
+          eq(size(first), before, 'counted opposite direction restores divider')
+          press(prefix .. positive)
+          eq(size(first), before + count, 'counted positive direction moves divider by count')
+          press(prefix .. negative)
+          eq(size(first), before, 'counted negative direction restores divider')
+        end
+        press('<C-w>' .. negative)
+        eq(size(first), before - 1, 'count does not leak into the next uncounted chord')
+        press('1<C-w>' .. positive)
+        eq(size(first), before, 'explicit count one restores divider')
+        eq(api.nvim_get_current_win(), current, 'counted resizing preserves focus')
+        eq(api.nvim_list_wins(), windows, 'counted resizing preserves windows')
+        eq(vim.fn.winlayout(), layout, 'counted resizing does not move windows')
+        eq(api.nvim_buf_get_lines(file, 0, -1, false), { 'keep counted resize edits' }, 'counted resizing preserves text')
+        assert(vim.bo[file].modified, 'counted resizing preserves modified flag')
+        for _, key in ipairs({ negative, positive }) do
+          press('9999<C-w>' .. key)
+          assert(size(first) >= 1 and size(other) >= 1, 'large counts respect minimum sizes')
+          eq(vim.o.cmdheight, cmdheight, 'large counts must not resize command line')
+        end
+      end
+    end
+  end },
   { 'resize ignores solitary, floating, and header windows', function()
     reset()
     local editor, cmdheight = api.nvim_get_current_win(), vim.o.cmdheight
