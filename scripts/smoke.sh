@@ -233,7 +233,7 @@ local ok, err = xpcall(function()
     vim.cmd('cclose')
     runtime.flush('test')
     assert(api.nvim_win_is_valid(editor) and api.nvim_win_get_buf(editor) == original)
-    assert(runtime.owns(header) and vim.o.showtabline == 2 and vim.o.tabline:find('SystemBarHost', 1, true))
+    assert(runtime.owns(header) and vim.o.showtabline == 0 and vim.o.tabline == '%!v:lua.nvim_bufferline()')
   ]=])
 end, debug.traceback)
 if child > 0 then vim.fn.jobstop(child) end
@@ -317,7 +317,7 @@ for _, split in ipairs({ 'split', 'vsplit' }) do
     api.nvim_set_current_win(closing)
     keys(':q<CR>')
     assert(not api.nvim_win_is_valid(closing) and api.nvim_win_is_valid(surviving), 'Quit must close only the requested split')
-    assert(require('bufferline.config').options.multiline.enabled and vim.o.tabline:find('SystemBarHost', 1, true), 'Split quit must retain multiline tabs and the native banner')
+    assert(require('bufferline.config').options.multiline.enabled and vim.o.showtabline == 0, 'Split quit must retain multiline tabs without a native tabline row')
     handle = assert(runtime.handles()[api.nvim_get_current_tabpage()])
     assert(runtime.owns(handle.win), 'Split quit must retain or rebuild an owned header')
     editor = surviving
@@ -591,7 +591,7 @@ local function run()
         assert(terminal_pos[1] > editor_pos[1] and terminal_pos[2] == editor_pos[2], 'terminal must split below the editor, not the tree or header')
         assert(api.nvim_win_get_width(terminal_win) == api.nvim_win_get_width(editor), 'terminal must stay within the editor width')
         assert_tree_persisted()
-        assert(runtime.owns(header) and api.nvim_win_get_position(header)[1] == 1, 'terminal must stay below banner and header')
+        assert(runtime.owns(header) and api.nvim_win_get_position(header)[1] == 0, 'terminal must stay below the top header')
         local header_height, cmdheight = api.nvim_win_get_height(header), vim.o.cmdheight
         local function chord(key)
           api.nvim_feedkeys(vim.keycode('<C-w>' .. key), 'xt', false)
@@ -620,7 +620,7 @@ local function run()
           assert(api.nvim_get_current_win() == terminal_win, 'window controls must preserve terminal focus')
           assert(api.nvim_win_get_buf(terminal_win) == terminal and api.nvim_win_get_buf(editor) == file, 'movement must preserve both buffers')
           assert(vim.fn.jobwait({ job }, 0)[1] == -1, 'window controls must keep shell running')
-          assert(api.nvim_win_get_height(header) == header_height and api.nvim_win_get_position(header)[1] == 1, 'window controls must preserve header')
+          assert(api.nvim_win_get_height(header) == header_height and api.nvim_win_get_position(header)[1] == 0, 'window controls must preserve header')
           assert(api.nvim_win_get_position(header)[2] == api.nvim_win_get_width(tree_win) + 1, 'header must start after the sidebar')
           assert(api.nvim_win_get_width(header) == vim.o.columns - api.nvim_win_get_width(tree_win) - 1, 'header must span every editor and terminal after redraw')
           assert(vim.o.cmdheight == cmdheight, 'window controls must not resize the command line')
@@ -1118,7 +1118,7 @@ nvim_probe "neo-tree.nvim is eager (directory hijack ready at startup)" +"lua $(
 nvim_probe "opening files removes only unused empty unnamed buffers" +"lua dofile(vim.env.NVIM_SMOKE_EMPTY_BUFFER)"
 nvim_probe "Bufferline detached clone updates main and writes its lockfile" +"lua dofile(vim.env.NVIM_SMOKE_REPO .. '/scripts/bufferline-update-regression.lua')"
 nvim_probe "Bufferline formatter and indicator keep stable width" +"lua dofile(vim.env.NVIM_SMOKE_BUFFERLINE_CONFIG)"
-nvim_probe "Top system strip preserves layout, focus, and telemetry" +"lua dofile(vim.env.NVIM_SMOKE_REPO .. '/scripts/topbar-regression.lua')"
+nvim_probe "Buffer tabs start on the first row with no top banner" +"lua dofile(vim.env.NVIM_SMOKE_REPO .. '/scripts/header-top-regression.lua')"
 nvim_probe "Bufferline header keyboard navigation preserves editor mappings" +"lua dofile(vim.env.NVIM_SMOKE_HEADER)"
 nvim_probe "nvim <directory> settles to one persistent Neo-tree and focuses the editor" "$REPO_DIR" +"let g:smoke_case='startup'" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY)"
 nvim_probe "directory startup quits once when clean and protects unsaved edits" +"lua dofile(vim.env.NVIM_SMOKE_DIRECTORY_QUIT)"

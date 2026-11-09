@@ -42,8 +42,6 @@ require('bufferline').setup({
   },
 })
 
-require('config.topbar').setup()
-
 local saved_cursor
 local hidden_cursor = 'n-v:block-blinkon0-BufferlineHiddenCursor'
 local group = vim.api.nvim_create_augroup('BufferlineHeaderCursor', { clear = true })
