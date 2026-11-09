@@ -117,7 +117,7 @@ let &t_EI.="\e[1 q" "EI = NORMAL mode (ELSE)
 
 -- GUI-specific settings
 if vim.fn.has('gui_running') == 1 then
-  opt.guifont = 'Rec Mono St.Helens:h14'
+  opt.guifont = 'Rec Mono St.Helens:h13'
 end
 
 -- XTerm paste support
