@@ -35,9 +35,11 @@ return {
   },
 
   -- Colorschemes
-  -- Apollo lives in the nvim/ folder of the apollo-theme monorepo.
+  -- Apollo lives in the nvim/ folder of the apollo-theme monorepo. Pin the
+  -- app's own release tag (nvim-vX.Y.Z); bump it to take a new release.
   {
     'apollo-theme/apollo-theme',
+    tag = 'nvim-v0.2.1',
     lazy = false,
     priority = 1000,
     config = function(plugin)
@@ -49,10 +51,6 @@ return {
   { 'chriskempson/base16-vim',        lazy = true },
   { 'sainnhe/everforest',           lazy = true },
   { 'ayu-theme/ayu-vim',            lazy = true },
-  {
-    'MOSconfig/NeoSolarized.nvim',
-    lazy = true,
-  },
 
   -- HTML / CSS / Markdown
   {
