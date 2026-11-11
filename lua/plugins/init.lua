@@ -34,16 +34,17 @@ return {
     },
   },
 
-  -- Colorschemes
-  { 'apollo-theme/nvim-apollo-theme', lazy = false, priority = 1000 },
-  { 'MOSconfig/vim-solarized8',       lazy = true },
-  { 'MOSconfig/gruvbox',              lazy = true },
-  { 'chriskempson/base16-vim',        lazy = true },
-  { 'sainnhe/everforest',           lazy = true },
-  { 'ayu-theme/ayu-vim',            lazy = true },
+  -- Colorscheme
+  -- Apollo lives in the nvim/ folder of the apollo-theme monorepo. Pin the
+  -- app's own release tag (nvim-vX.Y.Z); bump it to take a new release.
   {
-    'MOSconfig/NeoSolarized.nvim',
-    lazy = true,
+    'apollo-theme/apollo-theme',
+    tag = 'nvim-v0.2.1',
+    lazy = false,
+    priority = 1000,
+    config = function(plugin)
+      vim.opt.runtimepath:append(plugin.dir .. '/nvim')
+    end,
   },
 
   -- HTML / CSS / Markdown

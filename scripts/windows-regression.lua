@@ -124,7 +124,7 @@ local function integration()
   assert(vim.fn.filereadable(vim.fn.stdpath('config') .. '/lua/config/private.lua') == 1, 'private stub exists')
   assert(vim.fn.has('python3') == 1, 'Python provider required')
   local plugins = require('lazy.core.config').plugins
-  for _, name in ipairs({ 'nvim-apollo-theme', 'neo-tree.nvim', 'bufferline.nvim', 'lualine.nvim', 'ultisnips' }) do
+  for _, name in ipairs({ 'apollo-theme', 'neo-tree.nvim', 'bufferline.nvim', 'lualine.nvim', 'ultisnips' }) do
     assert(plugins[name] and plugins[name]._.loaded, name .. ' must be eager')
   end
   require('lazy').load({ plugins = { 'telescope.nvim', 'markdown-preview.nvim' } })

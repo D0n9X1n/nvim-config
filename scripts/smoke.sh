@@ -1142,14 +1142,11 @@ assert_not_eager wilder.nvim
 nvim_probe "wilder loads on CmdlineEnter" +"doautocmd CmdlineEnter" +"lua $(loaded_lua wilder.nvim)"
 assert_not_eager editorconfig.nvim
 nvim_probe "editorconfig loads on BufReadPre" +"e README.md" +"lua $(loaded_lua editorconfig.nvim)"
-assert_not_eager vim-solarized8
-assert_not_eager base16-vim
-assert_not_eager everforest
-assert_not_eager ayu-vim
-assert_not_eager NeoSolarized.nvim
-assert_not_eager gruvbox
-nvim_probe "Apollo is eager (loaded at startup)" +"lua $(loaded_lua nvim-apollo-theme)"
-nvim_probe "Apollo has priority = 1000" +"lua local p=require('lazy.core.config').plugins['nvim-apollo-theme']; if not (p and p.priority == 1000) then vim.cmd('cq') end"
+nvim_probe "Apollo is the only bundled colorscheme" +"lua local p=require('lazy.core.config').plugins; for _,n in ipairs({'vim-solarized8','gruvbox','base16-vim','everforest','ayu-vim','NeoSolarized.nvim'}) do if p[n] then vim.cmd('cq') end end"
+nvim_probe "Apollo is eager (loaded at startup)" +"lua $(loaded_lua apollo-theme)"
+nvim_probe "Apollo has priority = 1000" +"lua local p=require('lazy.core.config').plugins['apollo-theme']; if not (p and p.priority == 1000) then vim.cmd('cq') end"
+nvim_probe "Apollo is pinned to an nvim-vX.Y.Z release tag" +"lua local p=require('lazy.core.config').plugins['apollo-theme']; if not (p and type(p.tag)=='string' and p.tag:match('^nvim%-v%d+%.%d+%.%d+$')) then vim.cmd('cq') end"
+nvim_probe "Apollo comes from the monorepo nvim/ folder" +"lua local p=require('lazy.core.config').plugins['apollo-theme']; if not (p and p.url:find('apollo%-theme/apollo%-theme') and vim.tbl_contains(vim.api.nvim_list_runtime_paths(), p.dir .. '/nvim')) then vim.cmd('cq') end"
 nvim_probe "Apollo is the active colorscheme" +"lua if vim.g.colors_name ~= 'apollo' then vim.cmd('cq') end"
 nvim_probe "all highlights stay upright after theme, syntax, and plugin loads" +"lua dofile(vim.env.NVIM_SMOKE_UPRIGHT)"
 

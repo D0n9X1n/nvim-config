@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import release  # noqa: E402
 
 
-REPO = "D0n9X1n/nvim-config"
+REPO = "MOSconfig/nvim-config"
 CI_JOBS = ("Unix CI", "Ubuntu x86-64", "macOS ARM64", "macOS Intel",
            "Automation contracts")
 WINDOWS_JOBS = ("Neovim 0.12 / powershell", "Neovim 0.12 / pwsh")

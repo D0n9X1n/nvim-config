@@ -3,14 +3,9 @@
 -- ====================================================================
 
 local opt = vim.opt
-local g = vim.g
 
 -- Background
 opt.background = 'dark'
-
--- Everforest settings (kept for reference)
-g.everforest_background = 'medium'
-g.everforest_better_performance = 1
 
 -- Set colorscheme
 pcall(function()

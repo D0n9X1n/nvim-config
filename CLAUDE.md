@@ -50,7 +50,7 @@ Plugin declarations and configuration are intentionally split:
 - `lua/config/keymaps.lua` and `lua/config/autocmds.lua` own cross-plugin mappings and lifecycle behavior.
 - `UltiSnips/` contains the bundled language snippet sources.
 
-The default theme is `apollo-theme/nvim-apollo-theme`, which must stay eager with priority `1000`; `lua/config/theme.lua` activates `apollo` and applies project-specific highlight overrides. Neo-tree is also eager because it owns directory startup. Bufferline, lualine, and UltiSnips are deliberately eager; the smoke matrix protects these decisions and the Neo-tree/Bufferline directory-startup behavior.
+The default theme is the `nvim/` folder of the `apollo-theme/apollo-theme` monorepo (lazy.nvim name `apollo-theme`, pinned to the `nvim-vX.Y.Z` release tag; its `config` appends that folder to the runtimepath; take a new release by bumping `tag`), which must stay eager with priority `1000`; `lua/config/theme.lua` activates `apollo` and applies project-specific highlight overrides. Neo-tree is also eager because it owns directory startup. Bufferline, lualine, and UltiSnips are deliberately eager; the smoke matrix protects these decisions and the Neo-tree/Bufferline directory-startup behavior.
 
 Treesitter is eager on its explicit `main` branch and uses the Neovim 0.12 API. Parsers are installed explicitly with `:TSInstall`; startup never downloads them. Bundled parser queries fall back to the plugin's `runtime` directory. Smoke tests assert actual highlight captures and reindentation, not just plugin load state.
 
