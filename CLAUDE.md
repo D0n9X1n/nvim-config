@@ -24,6 +24,9 @@ nvim --headless "+lua if vim.g.colors_name ~= 'apollo' then vim.cmd('cquit 1') e
 # Install, update, and remove plugins to match the spec
 nvim --headless "+Lazy! sync" +qa
 
+# Unit tests for the installer's plugin cleanup (local git fixtures, no network)
+python3 scripts/test-prune-plugins.py
+
 # Profile startup
 nvim --headless --startuptime /tmp/nvim-startup.log +qa
 ```
@@ -65,6 +68,8 @@ Command- and key-triggered plugins rely on lazy.nvim stubs. Keep each trigger in
 When adding or removing a plugin, update its spec, per-plugin config, keymaps/autocommands or `vim.g` settings, smoke coverage, and relevant `README.md` documentation together.
 
 ## Local and generated state
+
+`install.sh` (without `--no-deps`) runs `Lazy! install`, then `scripts/prune-plugins.sh` removes the clones lazy lists in `to_clean`, keeping any with local work. Do not swap it for `Lazy clean`, which deletes without checking.
 
 Do not edit or replace `lua/config/private.lua` or `lua/config/private_config.lua`; they are gitignored personal extension points. Do not add `lazy-lock.json`, which is machine-local. Preserve the lazy.nvim bootstrap in `init.lua`.
 

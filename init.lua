@@ -49,6 +49,10 @@ local spec = {
 local private_ok, private_plugins = pcall(require, "config.private")
 if private_ok and type(private_plugins) == "table" then
   vim.list_extend(spec, private_plugins)
+elseif not private_ok and vim.uv.fs_stat(vim.fn.stdpath("config") .. "/lua/config/private.lua") then
+  -- Still non-fatal, but recorded: install.sh then removes no plugins, since
+  -- this file's plugins would otherwise look unused.
+  vim.g.private_spec_error = tostring(private_plugins)
 end
 
 -- Setup lazy.nvim

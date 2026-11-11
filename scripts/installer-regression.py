@@ -61,6 +61,9 @@ class InstallerRegression(unittest.TestCase):
                         XDG_CONFIG_HOME=str(self.xdg), PATH=str(self.bin))
         self.env.pop("BASH_ENV", None)
         self.env.pop("ENV", None)
+        # smoke.sh exports its own XDG dirs; the installer must use this HOME.
+        for name in ("XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME"):
+            self.env.pop(name, None)
 
     def stub(self, command, body):
         path = self.bin / command
@@ -315,6 +318,97 @@ class InstallerRegression(unittest.TestCase):
             self.stub(command, "exit 0")
         self.install(no_deps=False)
         self.assert_runtime()
+
+    def plugin_stub(self, to_clean=("old-theme",), declared=("apollo-theme",)):
+        """A stub nvim that answers the installer's plugin queries."""
+        for command in ("rg", "fzf", "ag", "ctags", "python3", "clang++"):
+            self.stub(command, "exit 0")
+        for command in ("git", "find", "sort", "tr", "grep", "pwd", "sleep"):
+            location = shutil.which(command)
+            if location and not (self.bin / command).exists():
+                (self.bin / command).symlink_to(location)
+        self.lazy = self.home / ".local/share/nvim/lazy"
+        self.lazy.mkdir(parents=True)
+        log = self.home / "nvim-calls"
+        self.stub("nvim", f"""
+printf '%s\\n' "$*" >> "{log}"
+case "$*" in
+  *--version*) printf 'NVIM v0.12.0\\n' ;;
+  *Lazy!\\ install*) : ;;
+  *prune-plugins*)
+    printf '%s\\n' {' '.join(repr(d) for d in declared)} > "$NVIM_PRUNE_DECLARED"
+    printf '%s\\n' {' '.join(repr(c) for c in to_clean)} > "$NVIM_PRUNE_CANDIDATES"
+    ;;
+esac
+""")
+        return log
+
+    def upstream_repo(self):
+        """A bare repo with one commit, so clones have a pushed HEAD."""
+        seed = self.root / "seed"
+        env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
+                   GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t",
+                   GIT_CONFIG_GLOBAL="/dev/null", GIT_CONFIG_NOSYSTEM="1")
+        for args in (["init", "-q", "-b", "main", str(seed)],):
+            subprocess.run(["git", *args], check=True, env=env)
+        (seed / "README").write_text("x\n")
+        subprocess.run(["git", "-C", str(seed), "add", "README"], check=True, env=env)
+        subprocess.run(["git", "-C", str(seed), "commit", "-q", "-m", "seed"], check=True, env=env)
+        upstream = self.root / "upstream.git"
+        subprocess.run(["git", "clone", "-q", "--bare", str(seed), str(upstream)], check=True, env=env)
+        return upstream
+
+    def test_install_syncs_plugins_and_prunes_unused(self):
+        log = self.plugin_stub()
+        upstream = self.upstream_repo()
+        for name in ("apollo-theme", "old-theme"):
+            subprocess.run(["git", "clone", "-q", str(upstream), str(self.lazy / name)],
+                           check=True, capture_output=True)
+        result = self.install(no_deps=False)
+        calls = log.read_text()
+        self.assertIn("Lazy! install", calls)
+        self.assertTrue((self.lazy / "apollo-theme").is_dir())
+        self.assertFalse((self.lazy / "old-theme").exists(),
+                         result.stdout + result.stderr)
+        self.assertIn("old-theme", result.stdout)
+
+    def test_install_keeps_undeclared_plugin_with_local_work(self):
+        self.plugin_stub()
+        upstream = self.upstream_repo()
+        dirty = self.lazy / "old-theme"
+        subprocess.run(["git", "clone", "-q", str(upstream), str(dirty)],
+                       check=True, capture_output=True)
+        (dirty / "mine.lua").write_text("-- local edit\n")
+        result = self.install(no_deps=False)
+        self.assertTrue((dirty / "mine.lua").exists())
+        self.assertIn("old-theme", result.stdout)
+
+    def test_no_deps_skips_plugin_sync_and_prune(self):
+        log = self.plugin_stub()
+        stale = self.lazy / "old-theme"
+        stale.mkdir()
+        self.install(no_deps=True)
+        self.assertTrue(stale.is_dir())
+        self.assertNotIn("Lazy!", log.read_text() if log.exists() else "")
+
+    def test_self_install_still_syncs_and_prunes(self):
+        log = self.plugin_stub()
+        upstream = self.upstream_repo()
+        subprocess.run(["git", "clone", "-q", str(upstream), str(self.lazy / "old-theme")],
+                       check=True, capture_output=True)
+        self.xdg.mkdir()
+        shutil.move(str(self.checkout), str(self.config))
+        self.checkout = self.config
+        self.install(no_deps=False)
+        self.assertIn("Lazy! install", log.read_text())
+        self.assertFalse((self.lazy / "old-theme").exists())
+
+    def test_failed_plugin_query_prunes_nothing(self):
+        self.plugin_stub(declared=())
+        stale = self.lazy / "old-theme"
+        stale.mkdir()
+        self.install(no_deps=False)
+        self.assertTrue(stale.is_dir())
 
 
 if __name__ == "__main__":

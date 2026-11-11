@@ -35,8 +35,31 @@ if [[ "$CONFIG_HOME" != /* ]]; then
     exit 1
 fi
 NVIM_CONFIG_DIR="$CONFIG_HOME/nvim"
+
+# Install the declared plugins, then remove clones the spec no longer names.
+# lazy decides what is undeclared; prune-plugins.sh keeps any with local work.
+# Declared means a plugin name or its resolved directory. A private.lua that
+# fails to load, or a plugin spec error, writes no list, so nothing is removed.
+sync_plugins() {
+    "$NO_DEPS" && return 0
+    command -v nvim >/dev/null 2>&1 || return 0
+    nvim --headless '+Lazy! install' +qa || printf 'Warning: Lazy install did not finish; open nvim to retry.\n' >&2
+    PRUNE_DIR="$(mktemp -d)"
+    trap 'rm -rf -- "$PRUNE_DIR"' EXIT
+    export NVIM_PRUNE_DECLARED="$PRUNE_DIR/declared" NVIM_PRUNE_CANDIDATES="$PRUNE_DIR/candidates" NVIM_PRUNE_ROOT="$PRUNE_DIR/root"
+    nvim --headless "+lua local ok, err = pcall(function() local C = require('lazy.core.config'); assert(not vim.g.private_spec_error, 'private.lua failed to load: ' .. tostring(vim.g.private_spec_error)); for _, n in ipairs(C.spec and C.spec.notifs or {}) do assert(n.level < vim.log.levels.ERROR, 'plugin spec error: ' .. n.msg) end; require('lazy.core.plugin').update_state(); local d, c = {}, {}; for name, p in pairs(C.plugins) do d[#d + 1] = name; d[#d + 1] = vim.fs.basename(p.dir) end; for _, p in ipairs(C.to_clean) do c[#c + 1] = vim.fs.basename(p.dir) end; vim.fn.writefile(d, vim.env.NVIM_PRUNE_DECLARED); vim.fn.writefile(c, vim.env.NVIM_PRUNE_CANDIDATES); vim.fn.writefile({ C.options.root }, vim.env.NVIM_PRUNE_ROOT) end); if not ok then io.stderr:write(err .. '\n'); vim.cmd('cquit 1') end" "+lua -- prune-plugins" +qa || true
+    if [[ -s "$NVIM_PRUNE_DECLARED" ]]; then
+        PLUGIN_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/lazy"
+        [[ -s "$NVIM_PRUNE_ROOT" ]] && PLUGIN_ROOT="$(head -n 1 "$NVIM_PRUNE_ROOT")"
+        "$BASH" "$SCRIPT_DIR/scripts/prune-plugins.sh" "$PLUGIN_ROOT" "$NVIM_PRUNE_DECLARED" "$NVIM_PRUNE_CANDIDATES" || true
+    else
+        printf 'Note: could not read the plugin list; no plugins were removed.\n'
+    fi
+}
+
 if [[ -d "$NVIM_CONFIG_DIR" ]] && [[ $(cd -- "$NVIM_CONFIG_DIR" && pwd -P) == "$SCRIPT_DIR" ]]; then
     printf 'Checkout is already the Neovim configuration; no links or backups needed.\n'
+    sync_plugins
     exit 0
 fi
 
@@ -158,6 +181,8 @@ if ! "$NO_DEPS"; then
         printf 'Note: clang++ not found. Install Xcode command line tools with: xcode-select --install\n'
     fi
 fi
+
+sync_plugins
 
 printf 'Installation complete: %s\n' "$NVIM_CONFIG_DIR"
 printf 'Private customizations: lua/config/private.lua and lua/config/private_config.lua\n'
