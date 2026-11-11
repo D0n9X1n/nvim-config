@@ -35,7 +35,15 @@ return {
   },
 
   -- Colorschemes
-  { 'apollo-theme/nvim-apollo-theme', lazy = false, priority = 1000 },
+  -- Apollo lives in the nvim/ folder of the apollo-theme monorepo.
+  {
+    'apollo-theme/apollo-theme',
+    lazy = false,
+    priority = 1000,
+    config = function(plugin)
+      vim.opt.runtimepath:append(plugin.dir .. '/nvim')
+    end,
+  },
   { 'MOSconfig/vim-solarized8',       lazy = true },
   { 'MOSconfig/gruvbox',              lazy = true },
   { 'chriskempson/base16-vim',        lazy = true },

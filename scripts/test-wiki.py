@@ -11,7 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 WIKI = ROOT / "scripts" / "wiki.py"
-REPO = "D0n9X1n/nvim-config"
+REPO = "MOSconfig/nvim-config"
 SHA = "0123456789abcdef0123456789abcdef01234567"
 OTHER_SHA = "89abcdef0123456789abcdef0123456789abcdef"
 MARKER = "<!-- nvim-config:managed-home -->"

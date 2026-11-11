@@ -1,12 +1,12 @@
 # Neovim Configuration
 
-[![Latest Release](https://img.shields.io/github/v/release/D0n9X1n/nvim-config?style=flat-square&logo=github&label=release)](https://github.com/D0n9X1n/nvim-config/releases/latest)
+[![Latest Release](https://img.shields.io/github/v/release/MOSconfig/nvim-config?style=flat-square&logo=github&label=release)](https://github.com/MOSconfig/nvim-config/releases/latest)
 [![Neovim](https://img.shields.io/badge/Neovim-%E2%89%A50.12-57A143?style=flat-square&logo=neovim&logoColor=white)](https://neovim.io/)
-[![Lua](https://img.shields.io/badge/config-Lua-2C2D72?style=flat-square&logo=lua&logoColor=white)](https://github.com/D0n9X1n/nvim-config/tree/main/lua)
-[![License](https://img.shields.io/github/license/D0n9X1n/nvim-config?style=flat-square&label=license)](LICENSE)
-[![Last Commit](https://img.shields.io/github/last-commit/D0n9X1n/nvim-config?style=flat-square&logo=git&logoColor=white)](https://github.com/D0n9X1n/nvim-config/commits/main)
+[![Lua](https://img.shields.io/badge/config-Lua-2C2D72?style=flat-square&logo=lua&logoColor=white)](https://github.com/MOSconfig/nvim-config/tree/main/lua)
+[![License](https://img.shields.io/github/license/MOSconfig/nvim-config?style=flat-square&label=license)](LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/MOSconfig/nvim-config?style=flat-square&logo=git&logoColor=white)](https://github.com/MOSconfig/nvim-config/commits/main)
 
-A modern Neovim configuration ported from the original [m-vim](https://github.com/D0n9X1n/m-vim.vimrc) setup.
+A modern Neovim configuration ported from the original [m-vim](https://github.com/MOSconfig/vim-config) setup.
 Written in Lua, managed by [lazy.nvim](https://github.com/folke/lazy.nvim).
 
 > **For Claude Code**: See [`CLAUDE.md`](CLAUDE.md) for repository operations and architecture.
@@ -66,7 +66,7 @@ Parser installation requires a C compiler and `tree-sitter` CLI 0.26.1+ from you
 Use native Windows Neovim 0.12+ and Git on `PATH`. PowerShell 7 is recommended; the installer also supports Windows PowerShell 5.1. Bash, WSL, administrator rights, and Developer Mode are not required.
 
 ```powershell
-git clone https://github.com/D0n9X1n/nvim-config.git
+git clone https://github.com/MOSconfig/nvim-config.git
 Set-Location nvim-config
 .\install.ps1
 nvim
@@ -92,7 +92,7 @@ On Windows, Neovim selects `pwsh` when available, otherwise `powershell`, includ
 ### Manual
 
 ```bash
-git clone git@github.com:D0n9X1n/nvim-config.git ~/.config/nvim
+git clone git@github.com:MOSconfig/nvim-config.git ~/.config/nvim
 ```
 
 ## Structure
@@ -356,7 +356,7 @@ The release helper rejects stale/PR-only CI results, missing jobs, API failures,
 
 ## Credits
 
-- Original Vim config: [D0n9X1n/m-vim.vimrc](https://github.com/D0n9X1n/m-vim.vimrc)
+- Original Vim config: [MOSconfig/vim-config](https://github.com/MOSconfig/vim-config)
 - Plugin manager: [folke/lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ## License
