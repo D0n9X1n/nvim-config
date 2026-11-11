@@ -16,6 +16,14 @@ LAZY = Path(os.environ.get("NVIM_LAZY_SOURCE",
                            Path.home() / ".local/share/nvim/lazy/lazy.nvim"))
 
 
+def private_block():
+    """init.lua's code that merges lua/config/private.lua, verbatim."""
+    text = (ROOT / "init.lua").read_text()
+    match = re.search(r"^(local private_ok.*?^end\n(?:.*?^end\n)?)", text, re.M | re.S)
+    assert match, "init.lua has no private.lua loader"
+    return match.group(1)
+
+
 def query_command():
     """The exact headless query line install.sh runs."""
     text = (ROOT / "install.sh").read_text()
@@ -39,11 +47,11 @@ class PluginQuery(unittest.TestCase):
             (self.data / name).mkdir()
 
     def run_query(self, spec, private=None):
+        private_loader = private_block()
         (self.config / "init.lua").write_text(f"""
 vim.opt.rtp:prepend(vim.fn.stdpath('data') .. '/lazy/lazy.nvim')
 local spec = {spec}
-local ok, extra = pcall(require, 'config.private')
-if ok and type(extra) == 'table' then vim.list_extend(spec, extra) end
+{private_loader}
 require('lazy').setup(spec, {{ install = {{ missing = false }}, checker = {{ enabled = false }},
   change_detection = {{ enabled = false }}, rocks = {{ enabled = false }}, pkg = {{ enabled = false }} }})
 """)
@@ -82,6 +90,14 @@ require('lazy').setup(spec, {{ install = {{ missing = false }}, checker = {{ ena
                                              private="error('boom')")
         self.assertIsNone(declared, result.stderr)
         self.assertIn("private.lua failed", result.stderr)
+
+    def test_private_that_only_fails_on_first_load_writes_no_list(self):
+        # Fails during init (before the theme exists), succeeds if re-run later.
+        result, declared, _ = self.run_query(
+            "{ { 'owner/plain' } }",
+            private="vim.g.private_loads = (vim.g.private_loads or 0) + 1; "
+                    "assert(vim.g.private_loads > 1, 'first load fails'); return { { 'owner/old' } }")
+        self.assertFalse(declared, result.stderr)
 
     def test_spec_error_writes_no_list(self):
         result, declared, _ = self.run_query("{ { 'owner/plain' }, { 42 } }")

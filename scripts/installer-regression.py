@@ -391,6 +391,18 @@ esac
         self.assertTrue(stale.is_dir())
         self.assertNotIn("Lazy!", log.read_text() if log.exists() else "")
 
+    def test_self_install_still_syncs_and_prunes(self):
+        log = self.plugin_stub()
+        upstream = self.upstream_repo()
+        subprocess.run(["git", "clone", "-q", str(upstream), str(self.lazy / "old-theme")],
+                       check=True, capture_output=True)
+        self.xdg.mkdir()
+        shutil.move(str(self.checkout), str(self.config))
+        self.checkout = self.config
+        self.install(no_deps=False)
+        self.assertIn("Lazy! install", log.read_text())
+        self.assertFalse((self.lazy / "old-theme").exists())
+
     def test_failed_plugin_query_prunes_nothing(self):
         self.plugin_stub(declared=())
         stale = self.lazy / "old-theme"

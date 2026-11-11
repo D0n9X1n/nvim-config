@@ -4,10 +4,10 @@
 # Usage: prune-plugins.sh <plugin-root> <declared-names-file> [<candidates-file>]
 #
 # A directory directly under <plugin-root> is removed only when it is not
-# declared, not a symlink, and is a git work tree with no tracked changes, no
-# untracked files other than generated doc/tags or doc/tags-<lang>, no stash,
-# and no commit
-# missing from every remote-tracking ref. Anything else is kept and listed.
+# declared, not a symlink, and is its own git work tree with no tracked
+# changes, no untracked or ignored files other than generated doc/tags or
+# doc/tags-<lang>, no stash, and no commit (on HEAD or any branch) missing
+# from every remote-tracking ref. Anything else is kept and listed.
 # With <candidates-file>, only the names it lists are considered. Empty
 # *.cloning markers left by an interrupted install are removed. An empty or
 # missing declared list removes nothing and exits non-zero.
@@ -30,16 +30,18 @@ has_user_work() {
   git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
   [ "$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)" = "$(cd "$dir" && pwd -P)" ] || return 0
   git -C "$dir" diff --quiet HEAD -- 2>/dev/null || return 0
+  # Untracked files, ignored ones included (an ignore rule is not evidence a
+  # file is generated), other than generated help tags.
   while IFS= read -r line; do
     case "$line" in
       doc/tags|doc/tags-[a-z][a-z]) ;;
       *) return 0 ;;
     esac
-  done < <(git -C "$dir" ls-files --others --exclude-standard)
+  done < <(git -C "$dir" ls-files --others)
   [ -z "$(git -C "$dir" stash list 2>/dev/null)" ] || return 0
-  # Every local commit must be on some remote-tracking ref. Shallow clones
-  # stop at their boundary, which is upstream by definition.
-  [ -z "$(git -C "$dir" rev-list --branches --not --remotes 2>/dev/null)" ] || return 0
+  # Every local commit (on HEAD, even detached, or any branch) must be on some
+  # remote-tracking ref. Shallow clones stop at their upstream boundary.
+  [ -z "$(git -C "$dir" rev-list HEAD --branches --not --remotes 2>/dev/null)" ] || return 0
   return 1
 }
 

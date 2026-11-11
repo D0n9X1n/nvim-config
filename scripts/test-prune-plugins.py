@@ -86,6 +86,24 @@ class PrunePlugins(unittest.TestCase):
         self.assertTrue((d / "doc" / "tags-notes.md").exists())
         self.assertIn("notes-in-doc", result.stdout)
 
+    def test_ignored_user_file_is_kept(self):
+        d = self.plugin("ignored-notes")
+        (d / ".git" / "info" / "exclude").write_text("private-notes.txt\n")
+        (d / "private-notes.txt").write_text("mine\n")
+        result = self.prune("x")
+        self.assertTrue((d / "private-notes.txt").exists())
+        self.assertIn("ignored-notes", result.stdout)
+
+    def test_commit_on_detached_head_is_kept(self):
+        d = self.plugin("detached")
+        git("checkout", "-q", "--detach", cwd=d)
+        (d / "local").write_text("l\n")
+        git("add", "local", cwd=d)
+        git("commit", "-q", "-m", "local", cwd=d)
+        result = self.prune("x")
+        self.assertTrue((d / "local").exists())
+        self.assertIn("detached", result.stdout)
+
     def test_user_work_is_kept_and_listed(self):
         tracked = self.plugin("tracked-edit")
         (tracked / "README").write_text("edited\n")
