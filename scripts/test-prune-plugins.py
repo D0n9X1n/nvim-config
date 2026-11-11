@@ -78,6 +78,14 @@ class PrunePlugins(unittest.TestCase):
         self.prune("x")
         self.assertFalse(d.exists())
 
+    def test_only_generated_helptags_are_ignored(self):
+        d = self.plugin("notes-in-doc")
+        (d / "doc").mkdir()
+        (d / "doc" / "tags-notes.md").write_text("mine\n")
+        result = self.prune("x")
+        self.assertTrue((d / "doc" / "tags-notes.md").exists())
+        self.assertIn("notes-in-doc", result.stdout)
+
     def test_user_work_is_kept_and_listed(self):
         tracked = self.plugin("tracked-edit")
         (tracked / "README").write_text("edited\n")

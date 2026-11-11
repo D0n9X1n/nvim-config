@@ -5,7 +5,8 @@
 #
 # A directory directly under <plugin-root> is removed only when it is not
 # declared, not a symlink, and is a git work tree with no tracked changes, no
-# untracked files other than generated doc/tags*, no stash, and no commit
+# untracked files other than generated doc/tags or doc/tags-<lang>, no stash,
+# and no commit
 # missing from every remote-tracking ref. Anything else is kept and listed.
 # With <candidates-file>, only the names it lists are considered. Empty
 # *.cloning markers left by an interrupted install are removed. An empty or
@@ -31,7 +32,7 @@ has_user_work() {
   git -C "$dir" diff --quiet HEAD -- 2>/dev/null || return 0
   while IFS= read -r line; do
     case "$line" in
-      doc/tags|doc/tags-*) ;;
+      doc/tags|doc/tags-[a-z][a-z]) ;;
       *) return 0 ;;
     esac
   done < <(git -C "$dir" ls-files --others --exclude-standard)

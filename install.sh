@@ -161,12 +161,14 @@ fi
 
 # Install the declared plugins, then remove clones the spec no longer names.
 # lazy decides what is undeclared; prune-plugins.sh keeps any with local work.
+# Declared means a plugin name or its resolved directory. A private.lua that
+# fails to load, or a plugin spec error, writes no list, so nothing is removed.
 if ! "$NO_DEPS" && command -v nvim >/dev/null 2>&1; then
     nvim --headless '+Lazy! install' +qa || printf 'Warning: Lazy install did not finish; open nvim to retry.\n' >&2
     PRUNE_DIR="$(mktemp -d)"
     trap 'rm -rf -- "$PRUNE_DIR"' EXIT
     export NVIM_PRUNE_DECLARED="$PRUNE_DIR/declared" NVIM_PRUNE_CANDIDATES="$PRUNE_DIR/candidates" NVIM_PRUNE_ROOT="$PRUNE_DIR/root"
-    nvim --headless "+lua local ok, err = pcall(function() local C = require('lazy.core.config'); require('lazy.core.plugin').update_state(); local d, c = {}, {}; for name in pairs(C.plugins) do d[#d + 1] = name end; for _, p in ipairs(C.to_clean) do c[#c + 1] = vim.fs.basename(p.dir) end; vim.fn.writefile(d, vim.env.NVIM_PRUNE_DECLARED); vim.fn.writefile(c, vim.env.NVIM_PRUNE_CANDIDATES); vim.fn.writefile({ C.options.root }, vim.env.NVIM_PRUNE_ROOT) end); if not ok then io.stderr:write(err .. '\n'); vim.cmd('cquit 1') end" "+lua -- prune-plugins" +qa || true
+    nvim --headless "+lua local ok, err = pcall(function() local C = require('lazy.core.config'); local priv = vim.fn.stdpath('config') .. '/lua/config/private.lua'; if vim.uv.fs_stat(priv) then local pok, perr = pcall(dofile, priv); assert(pok, 'private.lua failed to load: ' .. tostring(perr)) end; for _, n in ipairs(C.spec and C.spec.notifs or {}) do assert(n.level < vim.log.levels.ERROR, 'plugin spec error: ' .. n.msg) end; require('lazy.core.plugin').update_state(); local d, c = {}, {}; for name, p in pairs(C.plugins) do d[#d + 1] = name; d[#d + 1] = vim.fs.basename(p.dir) end; for _, p in ipairs(C.to_clean) do c[#c + 1] = vim.fs.basename(p.dir) end; vim.fn.writefile(d, vim.env.NVIM_PRUNE_DECLARED); vim.fn.writefile(c, vim.env.NVIM_PRUNE_CANDIDATES); vim.fn.writefile({ C.options.root }, vim.env.NVIM_PRUNE_ROOT) end); if not ok then io.stderr:write(err .. '\n'); vim.cmd('cquit 1') end" "+lua -- prune-plugins" +qa || true
     if [[ -s "$NVIM_PRUNE_DECLARED" ]]; then
         PLUGIN_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/lazy"
         [[ -s "$NVIM_PRUNE_ROOT" ]] && PLUGIN_ROOT="$(head -n 1 "$NVIM_PRUNE_ROOT")"
