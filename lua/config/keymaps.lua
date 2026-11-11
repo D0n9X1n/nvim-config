@@ -122,9 +122,9 @@ local function resize_divider(vertical, offset)
   local current = api.nvim_get_current_win()
   local function movable(win)
     return api.nvim_win_get_config(win).relative == ''
-      and (vertical or vim.bo[api.nvim_win_get_buf(win)].filetype ~= 'bufferline')
+      and (vertical or vim.bo[api.nvim_win_get_buf(win)].filetype ~= 'bufferlines')
   end
-  if not movable(current) or vim.bo.filetype == 'bufferline' then return end
+  if not movable(current) or vim.bo.filetype == 'bufferlines' then return end
   local next_win = vim.fn.win_getid(vim.fn.winnr(vertical and 'l' or 'j'))
   local owner = current
   if next_win == current then
@@ -202,8 +202,8 @@ map('n', '<leader>/', ':nohls<CR>', opts)
 -- Buffer navigation
 map('n', '[b', ':bprevious<CR>', opts)
 map('n', ']b', ':bnext<CR>', opts)
-map('n', '<Left>', ':BufferLineCyclePrev<CR>', opts)
-map('n', '<Right>', ':BufferLineCycleNext<CR>', opts)
+map('n', '<Left>', ':BufferLinesCyclePrev<CR>', opts)
+map('n', '<Right>', ':BufferLinesCycleNext<CR>', opts)
 map('n', '<leader>q', function() close_buffer_smart() end, { silent = true })
 
 -- Tab navigation

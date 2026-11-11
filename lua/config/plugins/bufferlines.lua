@@ -1,8 +1,8 @@
 -- ====================================================================
--- Bufferline Configuration
+-- Bufferlines Configuration
 -- ====================================================================
 
-require('bufferline').setup({
+require('bufferlines').setup({
   highlights = function(defaults)
     local highlights = defaults.highlights
     local background = vim.api.nvim_get_hl(0, { name = 'Normal', link = false }).bg or 'NONE'
@@ -54,7 +54,7 @@ local function restore_cursor()
 end
 
 local function update_cursor()
-  local runtime = require('bufferline.multiline.runtime')
+  local runtime = require('bufferlines.multiline.runtime')
   if runtime.owns(vim.api.nvim_get_current_win()) then
     local background = vim.api.nvim_get_hl(0, { name = 'Normal', link = false }).bg or '#000000'
     vim.api.nvim_set_hl(0, 'BufferlineHiddenCursor', { fg = background, bg = background, blend = 100 })

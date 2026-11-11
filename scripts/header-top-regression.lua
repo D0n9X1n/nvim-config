@@ -1,7 +1,7 @@
 local api = vim.api
 vim.o.lines = 40
 vim.o.columns = 120
-local runtime = require('bufferline.multiline.runtime')
+local runtime = require('bufferlines.multiline.runtime')
 local function top()
   assert(vim.wait(1000, function()
     runtime.flush('header-top-test')
@@ -9,7 +9,7 @@ local function top()
     return handle and runtime.owns(handle.win) and api.nvim_win_get_position(handle.win)[1] == 0
   end, 10), 'buffer tabs must start on the first screen row')
   assert(vim.o.showtabline == 0, 'no native tabline row may sit above the buffer tabs')
-  assert(vim.o.tabline == '%!v:lua.nvim_bufferline()', 'native tabline must stay with Bufferline')
+  assert(vim.o.tabline == '%!v:lua.nvim_bufferlines()', 'native tabline must stay with Bufferline')
 end
 local function no_banner_state(when)
   assert(package.loaded['config.topbar'] == nil, 'top system banner must not load ' .. when)
@@ -60,7 +60,7 @@ top()
 assert(vim.o.laststatus == 3, 'bottom statusline stays unchanged')
 runtime.disable()
 assert(not runtime.selected() and vim.o.showtabline == 2, 'disabling multiline must show the native tabline')
-assert(vim.o.tabline == '%!v:lua.nvim_bufferline()', 'disabling multiline must restore native buffer tabs')
+assert(vim.o.tabline == '%!v:lua.nvim_bufferlines()', 'disabling multiline must restore native buffer tabs')
 local native = api.nvim_eval_statusline(vim.o.tabline, { use_tabline = true, maxwidth = vim.o.columns }).str
 assert(native:find('%S'), 'native buffer tabs must render entries')
 local messages = api.nvim_exec2('messages', { output = true }).output
