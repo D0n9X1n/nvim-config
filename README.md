@@ -231,8 +231,6 @@ The former `,g` automatic commit/push and `,w` / `w!!` sudo-write mappings are r
 
 Default: **Apollo** (warm, high-contrast dark). Change in `lua/config/theme.lua`.
 
-Available: `apollo`, `gruvbox`, `solarized8`, `everforest`, `base16-*`, `ayu`.
-
 ## Customization
 
 ### Personal plugins — `private.lua`

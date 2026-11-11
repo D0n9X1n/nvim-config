@@ -34,7 +34,7 @@ return {
     },
   },
 
-  -- Colorschemes
+  -- Colorscheme
   -- Apollo lives in the nvim/ folder of the apollo-theme monorepo. Pin the
   -- app's own release tag (nvim-vX.Y.Z); bump it to take a new release.
   {
@@ -46,11 +46,6 @@ return {
       vim.opt.runtimepath:append(plugin.dir .. '/nvim')
     end,
   },
-  { 'MOSconfig/vim-solarized8',       lazy = true },
-  { 'MOSconfig/gruvbox',              lazy = true },
-  { 'chriskempson/base16-vim',        lazy = true },
-  { 'sainnhe/everforest',           lazy = true },
-  { 'ayu-theme/ayu-vim',            lazy = true },
 
   -- HTML / CSS / Markdown
   {
