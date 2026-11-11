@@ -113,7 +113,7 @@ end
 
 local tests = {
   { 'terminal splits below the editor and preserves visible unsaved files', function()
-    for _, from in ipairs({ 'editor', 'neo-tree', 'bufferline' }) do
+    for _, from in ipairs({ 'editor', 'neo-tree', 'bufferlines' }) do
       local file = named(reset())
       local editor = api.nvim_get_current_win()
       api.nvim_buf_set_lines(file, 0, -1, false, { 'unsaved file text' })
@@ -433,7 +433,7 @@ local tests = {
     api.nvim_set_current_win(editor)
     vim.cmd('aboveleft 1new')
     local header = api.nvim_get_current_win()
-    vim.bo.buftype, vim.bo.filetype = 'nofile', 'bufferline'
+    vim.bo.buftype, vim.bo.filetype = 'nofile', 'bufferlines'
     for _, key in ipairs({ 'H', 'J', 'K', 'L' }) do callback('<C-w>' .. key)() end
     eq(api.nvim_win_get_height(header), 1, 'focused header must stay one row')
     api.nvim_set_current_win(editor)

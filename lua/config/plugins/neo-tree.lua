@@ -27,7 +27,7 @@ require('neo-tree').setup({
       end,
     },
   },
-  open_files_do_not_replace_types = { 'terminal', 'Trouble', 'qf', 'edgy', 'bufferline' },
+  open_files_do_not_replace_types = { 'terminal', 'Trouble', 'qf', 'edgy', 'bufferlines' },
   popup_border_style = 'rounded',
   enable_git_status = true,
   enable_diagnostics = true,

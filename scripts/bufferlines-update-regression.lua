@@ -1,10 +1,10 @@
 local function run()
   local spec
   for _, candidate in ipairs(dofile('lua/plugins/init.lua')) do
-    if candidate[1] == 'MOSconfig/bufferline.nvim' then spec = candidate end
+    if candidate[1] == 'D0n9X1n/bufferlines.nvim' then spec = candidate end
   end
-  assert(spec and spec.branch == 'main', 'Bufferline must explicitly track main')
-  assert(spec.tag == nil and spec.version == nil and spec.commit == nil, 'Bufferline must not be release-pinned')
+  assert(spec and spec.branch == 'main', 'Bufferlines must explicitly track main')
+  assert(spec.tag == nil and spec.version == nil and spec.commit == nil, 'Bufferlines must not be release-pinned')
   local git = require('lazy.manage.git')
   local task = require('lazy.manage.task.git')
   local config = require('lazy.core.config')
@@ -33,7 +33,7 @@ local function run()
     command({ 'git', 'update-ref', '--no-deref', '-d', 'refs/remotes/origin/HEAD' }, clone)
     vim.fn.writefile({ 'latest main' }, upstream .. '/file')
     command({ 'git', 'commit', '-qam', 'main update' }, upstream)
-    local plugin = { name = 'bufferline.nvim', dir = clone, branch = spec.branch, _ = { installed = true } }
+    local plugin = { name = 'bufferlines.nvim', dir = clone, branch = spec.branch, _ = { installed = true } }
     assert(git.get_branch({ dir = clone }) == nil, 'fixture must reproduce missing branch metadata')
     assert(not task.branch.skip(plugin), 'missing main must trigger lazy branch repair')
     task.branch.run({ plugin = plugin, spawn = function(_, executable, opts)
@@ -45,20 +45,20 @@ local function run()
     local target = assert(git.get_target(plugin))
     assert(target.commit == command({ 'git', 'rev-parse', 'main' }, upstream), 'update must select latest main')
     command({ 'git', 'checkout', '--detach', '-q', target.commit }, clone)
-    config.plugins = { ['bufferline.nvim'] = plugin }
+    config.plugins = { ['bufferlines.nvim'] = plugin }
     config.spec = { disabled = {}, ignore_installed = {} }
     config.options.lockfile = temp .. '/lazy-lock.json'
     lock.lock, lock._loaded = {}, false
     lock.update()
     local data = vim.json.decode(table.concat(vim.fn.readfile(config.options.lockfile), '\n'))
-    assert(data['bufferline.nvim'].branch == 'main' and data['bufferline.nvim'].commit == target.commit,
+    assert(data['bufferlines.nvim'].branch == 'main' and data['bufferlines.nvim'].commit == target.commit,
       'lockfile must save valid latest-main metadata for detached clones')
   end, debug.traceback)
   config.plugins, config.spec, config.options.lockfile = saved.plugins, saved.spec, saved.lockfile
   lock.lock, lock._loaded = saved.lock, saved.loaded
   vim.fn.delete(temp, 'rf')
   assert(ok, err)
-  print('PASS: Bufferline detached-clone update and lockfile regression')
+  print('PASS: Bufferlines detached-clone update and lockfile regression')
 end
 local ok, err = xpcall(run, debug.traceback)
 if not ok then
