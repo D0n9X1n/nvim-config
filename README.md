@@ -51,7 +51,9 @@ The installer will:
 3. Create `private.lua` if it doesn't exist
 4. Install optional tools via Homebrew
 
-Use `./install.sh --no-deps` to skip Homebrew installations. The installer honors `XDG_CONFIG_HOME`, replaces managed files only after backing up the existing configuration, and preserves both personal extension files.
+After linking, the installer runs `Lazy! install` and removes plugin clones the spec no longer declares, such as an old theme. A clone with local work (edits, untracked files other than generated `doc/tags`, a stash, or unpushed commits) is kept and listed. Plugins from `lua/config/private.lua` are declared, so they stay.
+
+Use `./install.sh --no-deps` to skip Homebrew installations and the plugin install and cleanup. The installer honors `XDG_CONFIG_HOME`, replaces managed files only after backing up the existing configuration, and preserves both personal extension files.
 
 On first launch, lazy.nvim auto-installs plugins. Treesitter loads eagerly using its current API; language parsers are installed explicitly, not downloaded when opening files:
 
